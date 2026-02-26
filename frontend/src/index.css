@@ -1,0 +1,206 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@700;800&display=swap');
+
+:root {
+  --background: 40 20% 98%;
+  --foreground: 20 10% 20%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 10% 20%;
+  --primary: 150 25% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 35 40% 92%;
+  --secondary-foreground: 20 20% 30%;
+  --muted: 40 15% 94%;
+  --muted-foreground: 20 10% 50%;
+  --accent: 12 60% 75%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 60% 65%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 40 15% 90%;
+  --input: 40 15% 90%;
+  --ring: 150 25% 55%;
+  --radius: 1rem;
+}
+
+.dark {
+  --background: 240 10% 6%;
+  --foreground: 40 15% 92%;
+  --card: 240 8% 10%;
+  --card-foreground: 40 15% 92%;
+  --primary: 160 30% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 8% 14%;
+  --secondary-foreground: 40 15% 85%;
+  --muted: 240 8% 14%;
+  --muted-foreground: 40 8% 55%;
+  --accent: 15 70% 60%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 65% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 6% 18%;
+  --input: 240 6% 15%;
+  --ring: 160 30% 50%;
+}
+
+/* Ensure dark backgrounds */
+.dark,
+.dark html,
+.dark body,
+.dark #root {
+  background-color: hsl(240 10% 6%) !important;
+  color: hsl(40 15% 92%);
+}
+
+/* Dark mode enhancements */
+.dark body {
+  background: linear-gradient(180deg, hsl(240 10% 8%) 0%, hsl(240 12% 6%) 100%);
+  min-height: 100vh;
+}
+
+.dark .shadow-sm {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.dark .shadow-md {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.dark .shadow-xl {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Subtle glow effects for dark mode */
+.dark .bg-primary\/10 {
+  background: linear-gradient(135deg, hsla(160, 30%, 50%, 0.15) 0%, hsla(160, 30%, 50%, 0.08) 100%);
+}
+
+/* Better hover states in dark mode */
+.dark .hover\:bg-muted\/50:hover {
+  background: hsla(240, 8%, 20%, 0.7);
+}
+
+.dark .hover\:bg-muted\/30:hover {
+  background: hsla(240, 8%, 18%, 0.7);
+}
+
+/* Frosted glass effect for cards in dark mode */
+.dark .bg-card {
+  background: linear-gradient(135deg, hsl(240 8% 13%) 0%, hsl(240 8% 11%) 100%);
+  backdrop-filter: blur(10px);
+}
+
+/* Refined borders in dark mode */
+.dark .border-border\/50 {
+  border-color: hsla(240, 6%, 25%, 0.5);
+}
+
+.dark .border-border\/30 {
+  border-color: hsla(240, 6%, 25%, 0.3);
+}
+
+/* Primary button glow */
+.dark .bg-primary {
+  box-shadow: 0 0 20px hsla(160, 30%, 50%, 0.2);
+}
+
+.dark .bg-primary:hover {
+  box-shadow: 0 0 30px hsla(160, 30%, 50%, 0.3);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Nunito', sans-serif;
+    letter-spacing: -0.025em;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: hsl(240 8% 12%);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(240 6% 25%);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(240 6% 35%);
+}
+
+/* Smooth transitions for theme changes */
+body,
+.bg-card,
+.bg-background,
+.bg-muted,
+.text-foreground,
+.text-muted-foreground,
+.border-border {
+  transition: background-color 0.3s ease, color 0.2s ease, border-color 0.3s ease;
+}
+
+/* Input focus glow in dark mode */
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  box-shadow: 0 0 0 3px hsla(160, 30%, 50%, 0.15);
+}
+
+/* Progress bar shimmer in dark mode */
+.dark .bg-\[#E08E79\],
+.dark .bg-\[#88B088\],
+.dark .bg-\[#9A8C98\],
+.dark .bg-\[#7B9EC5\] {
+  position: relative;
+  overflow: hidden;
+}
+
+.dark .bg-\[#E08E79\]::after,
+.dark .bg-\[#88B088\]::after,
+.dark .bg-\[#9A8C98\]::after,
+.dark .bg-\[#7B9EC5\]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    left: 100%;
+  }
+}
