@@ -1,11 +1,13 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { BookOpen, Home, Calendar, Settings, Moon, Sun, ChevronRight } from 'lucide-react';
+import { BookOpen, Home, Calendar, Settings, Moon, Sun, ChevronRight, User } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
   const location = useLocation();
   const { darkMode, toggleDarkMode } = useTheme();
+  const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
   const collapseTimeoutRef = useRef(null);
   
@@ -160,19 +162,23 @@ const Sidebar = () => {
             <div 
               className="rounded-full bg-primary/20 flex items-center justify-center border border-background shadow-sm overflow-hidden flex-shrink-0 h-9 w-9"
             >
-              <img 
-                src="https://i.pravatar.cc/150?u=a042581f4e29026704d" 
-                alt="User" 
-                className="h-full w-full object-cover"
-              />
+              {user?.avatar ? (
+                <img 
+                  src={user.avatar} 
+                  alt={user.name || 'User'} 
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <User className="h-5 w-5 text-primary" />
+              )}
             </div>
             <div 
               className={`flex flex-col transition-all duration-300 ${
                 isExpanded ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-2 w-0'
               }`}
             >
-              <span className="text-sm font-medium leading-none whitespace-nowrap">Alex Rivera</span>
-              <span className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">Student</span>
+              <span className="text-sm font-medium leading-none whitespace-nowrap">{user?.name || 'Guest'}</span>
+              <span className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">{user?.major || 'Student'}</span>
             </div>
           </div>
         </NavLink>

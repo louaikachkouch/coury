@@ -1,10 +1,12 @@
-import React from 'react';
-import { CheckCircle2, FileText, Clock, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CheckCircle2, FileText, Clock, ChevronRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import { scheduleAPI, healthCheck } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
-const assignments = [
+const fallbackAssignments = [
   {
     id: 1,
     course: 'Advanced Psychology',
@@ -63,12 +65,75 @@ const AssignmentItem = ({ assignment }) => {
 
 const UpNextSection = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [assignments, setAssignments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUpcoming = async () => {
+      setIsLoading(true);
+      const isApiAvailable = await healthCheck();
+      
+      if (isApiAvailable && localStorage.getItem('token')) {
+        try {
+          const data = await scheduleAPI.getUpcoming();
+          // Map API data to display format
+          const mappedEvents = data.events.slice(0, 5).map(event => {
+            const eventDate = new Date(event.date);
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            let dueText = '';
+            if (eventDate.toDateString() === today.toDateString()) {
+              dueText = `Today, ${event.startTime}`;
+            } else if (eventDate.toDateString() === tomorrow.toDateString()) {
+              dueText = `Tomorrow, ${event.startTime}`;
+            } else {
+              dueText = `${eventDate.toLocaleDateString('en-US', { weekday: 'long' })}, ${event.startTime}`;
+            }
+            
+            return {
+              id: event._id,
+              course: event.courseName || 'General',
+              title: event.title,
+              due: dueText,
+              type: event.type,
+            };
+          });
+          setAssignments(mappedEvents);
+        } catch (error) {
+          console.error('Failed to fetch upcoming:', error);
+          setAssignments(fallbackAssignments);
+        }
+      } else {
+        setAssignments(fallbackAssignments);
+      }
+      setIsLoading(false);
+    };
+
+    fetchUpcoming();
+  }, []);
 
   const handleAssignmentClick = (assignment) => {
-    // Navigate to the course associated with this assignment
-    const courseId = assignment.id === 1 ? 1 : 2; // PSY 301 = 1, ENG 205 = 2
-    navigate(`/courses/${courseId}`);
+    navigate('/schedule');
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold font-heading flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+            Up Next
+          </h2>
+        </div>
+        <Card className="border-none shadow-sm p-8 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -87,19 +152,25 @@ const UpNextSection = () => {
               This Week
             </span>
             <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-md">
-              3 Tasks
+              {assignments.length} {assignments.length === 1 ? 'Task' : 'Tasks'}
             </span>
           </div>
         </div>
 
         {/* Assignment list */}
-        <div className="divide-y divide-border/40">
-          {assignments.map((assignment) => (
-            <div key={assignment.id} onClick={() => handleAssignmentClick(assignment)}>
-              <AssignmentItem assignment={assignment} />
-            </div>
-          ))}
-        </div>
+        {assignments.length > 0 ? (
+          <div className="divide-y divide-border/40">
+            {assignments.map((assignment) => (
+              <div key={assignment.id} onClick={() => handleAssignmentClick(assignment)}>
+                <AssignmentItem assignment={assignment} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 text-center text-muted-foreground">
+            <p>No upcoming tasks this week!</p>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="p-3 text-center border-t border-border/40 bg-muted/10">

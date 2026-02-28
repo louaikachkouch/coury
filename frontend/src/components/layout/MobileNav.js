@@ -1,8 +1,11 @@
 import React from 'react';
-import { BookOpen, Home, Calendar, Settings } from 'lucide-react';
+import { BookOpen, Home, Calendar, Settings, User } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const MobileHeader = () => {
+  const { user } = useAuth();
+  
   return (
     <header className="h-16 flex items-center justify-between px-4 border-b border-border/50 bg-card md:hidden">
       <NavLink to="/" className="flex items-center gap-2">
@@ -15,11 +18,15 @@ const MobileHeader = () => {
       </NavLink>
       <NavLink to="/settings">
         <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-          <img 
-            src="https://i.pravatar.cc/150?u=a042581f4e29026704d" 
-            alt="User" 
-            className="h-full w-full object-cover"
-          />
+          {user?.avatar ? (
+            <img 
+              src={user.avatar} 
+              alt={user.name || 'User'} 
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <User className="h-5 w-5 text-primary" />
+          )}
         </div>
       </NavLink>
     </header>

@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authAPI, userAPI, healthCheck } from '../services/api';
 
 const AuthContext = createContext();
 
-// Demo users for testing
+// Demo users for fallback when API is unavailable
 const DEMO_USERS = [
   {
     id: '1',
@@ -44,22 +45,62 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isApiAvailable, setIsApiAvailable] = useState(false);
 
   // Check for existing auth on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const authToken = localStorage.getItem('authToken');
-    
-    if (storedUser && authToken) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    const initAuth = async () => {
+      // Check if API is available
+      const apiAvailable = await healthCheck();
+      setIsApiAvailable(apiAvailable);
+
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+
+      if (token && apiAvailable) {
+        try {
+          const data = await authAPI.getMe();
+          setUser(data.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
+        } catch (error) {
+          // Token invalid, clear storage
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      } else if (storedUser) {
+        // Fallback to stored user for demo mode
+        setUser(JSON.parse(storedUser));
+      }
+      
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const login = async (email, password, rememberMe = false) => {
+    // Try API first
+    if (isApiAvailable) {
+      try {
+        const data = await authAPI.login(email, password);
+        
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        }
+        
+        setUser(data.user);
+        return data.user;
+      } catch (error) {
+        throw error;
+      }
+    }
+    
+    // Fallback to demo users
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        // Check against demo users
         const demoUser = DEMO_USERS.find(
           u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
         );
@@ -67,8 +108,7 @@ export const AuthProvider = ({ children }) => {
         if (demoUser) {
           const { password: _, ...userData } = demoUser;
           
-          // Store auth data
-          localStorage.setItem('authToken', 'demo-token-' + Date.now());
+          localStorage.setItem('token', 'demo-token-' + Date.now());
           localStorage.setItem('user', JSON.stringify(userData));
           
           if (rememberMe) {
@@ -85,19 +125,33 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (fullName, email, password) => {
-    // Simulate API call - replace with actual API integration
+    // Try API first
+    if (isApiAvailable) {
+      try {
+        const data = await authAPI.register(fullName, email, password);
+        
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        setUser(data.user);
+        return data.user;
+      } catch (error) {
+        throw error;
+      }
+    }
+    
+    // Fallback to demo mode
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         if (email && password.length >= 8 && fullName) {
           const userData = {
-            id: '1',
+            id: 'demo-' + Date.now(),
             email,
             name: fullName,
             avatar: `https://i.pravatar.cc/150?u=${email}`,
           };
           
-          // Store auth data
-          localStorage.setItem('authToken', 'demo-token-' + Date.now());
+          localStorage.setItem('token', 'demo-token-' + Date.now());
           localStorage.setItem('user', JSON.stringify(userData));
           
           setUser(userData);
@@ -105,22 +159,36 @@ export const AuthProvider = ({ children }) => {
         } else {
           reject(new Error('Please fill in all fields correctly'));
         }
-      }, 800); // Simulate network delay
+      }, 800);
     });
   };
 
   const logout = () => {
-    localStorage.removeItem('authToken');
+    localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberMe');
     sessionStorage.clear();
     setUser(null);
   };
 
-  const updateUser = (updates) => {
+  const updateUser = async (updates) => {
+    // Try API first
+    if (isApiAvailable && localStorage.getItem('token')) {
+      try {
+        const data = await userAPI.updateProfile(updates);
+        setUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        return data.user;
+      } catch (error) {
+        throw error;
+      }
+    }
+    
+    // Fallback to local storage
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
+    return updatedUser;
   };
 
   return (

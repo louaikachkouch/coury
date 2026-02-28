@@ -1,12 +1,15 @@
-import React from 'react';
-import { BookOpen, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Clock, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import { coursesAPI, healthCheck } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
-const courses = [
+// Fallback courses for demo mode
+const fallbackCourses = [
   {
-    id: 1,
+    _id: '1',
     title: 'Advanced Psychology',
     code: 'PSY 301',
     instructor: 'Dr. Sarah Jenkins',
@@ -16,7 +19,7 @@ const courses = [
     nextDue: 'Tomorrow, 11:59 PM',
   },
   {
-    id: 2,
+    _id: '2',
     title: 'Creative Writing',
     code: 'ENG 205',
     instructor: 'Prof. Michael Chen',
@@ -26,7 +29,7 @@ const courses = [
     nextDue: 'Friday, 5:00 PM',
   },
   {
-    id: 3,
+    _id: '3',
     title: 'Intro to Graphic Design',
     code: 'DES 101',
     instructor: 'Elena Rodriguez',
@@ -35,6 +38,15 @@ const courses = [
     progress: 90,
     nextDue: 'No upcoming assignments',
   },
+];
+
+const colorPalette = [
+  { color: 'bg-[#E08E79]/15 text-[#C96951]', solidColor: 'bg-[#E08E79]' },
+  { color: 'bg-[#88B088]/15 text-[#6B916B]', solidColor: 'bg-[#88B088]' },
+  { color: 'bg-[#9A8C98]/15 text-[#7A6C78]', solidColor: 'bg-[#9A8C98]' },
+  { color: 'bg-[#7EA8BE]/15 text-[#5A8AA0]', solidColor: 'bg-[#7EA8BE]' },
+  { color: 'bg-[#C9A959]/15 text-[#A68B3B]', solidColor: 'bg-[#C9A959]' },
+  { color: 'bg-[#B080B0]/15 text-[#906090]', solidColor: 'bg-[#B080B0]' },
 ];
 
 const CourseCard = ({ course, onClick }) => {
@@ -103,6 +115,56 @@ const AddCourseCard = ({ onClick }) => {
 
 const CoursesSection = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [courses, setCourses] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setIsLoading(true);
+      const isApiAvailable = await healthCheck();
+      
+      if (isApiAvailable && localStorage.getItem('token')) {
+        try {
+          const data = await coursesAPI.getEnrolled();
+          // Map API data to display format
+          const mappedCourses = data.courses.map((course, index) => ({
+            ...course,
+            _id: course._id,
+            code: course.category?.substring(0, 3).toUpperCase() + ' ' + (100 + index),
+            ...colorPalette[index % colorPalette.length],
+            nextDue: 'View course for details',
+          }));
+          setCourses(mappedCourses);
+        } catch (error) {
+          console.error('Failed to fetch courses:', error);
+          setCourses(fallbackCourses);
+        }
+      } else {
+        // Use fallback courses in demo mode
+        setCourses(fallbackCourses);
+      }
+      setIsLoading(false);
+    };
+
+    fetchCourses();
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold font-heading flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-muted-foreground" />
+            Your Courses
+          </h2>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -121,11 +183,11 @@ const CoursesSection = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {courses.map((course) => (
+        {courses.slice(0, 3).map((course) => (
           <CourseCard 
-            key={course.id} 
+            key={course._id} 
             course={course} 
-            onClick={() => navigate(`/courses/${course.id}`)}
+            onClick={() => navigate(`/courses/${course._id}`)}
           />
         ))}
         <AddCourseCard onClick={() => navigate('/courses')} />

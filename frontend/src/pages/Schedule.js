@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, BookOpen, Plus, X, MapPin, FileText } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, BookOpen, Plus, X, MapPin, FileText, Loader2 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import { scheduleAPI, healthCheck } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 // Helper functions for date handling
 const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
@@ -633,14 +635,87 @@ const UpcomingEvents = ({ events, onEventClick }) => {
 };
 
 const Schedule = () => {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 28)); // Feb 28, 2026
-  const [selectedDate, setSelectedDate] = useState(new Date(2026, 1, 28));
+  const { user } = useAuth();
+  const today = new Date();
+  const [currentDate, setCurrentDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedDate, setSelectedDate] = useState(today);
   const [events, setEvents] = useState(initialEvents);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isApiAvailable, setIsApiAvailable] = useState(false);
 
-  const handleAddEvent = (newEvent) => {
-    setEvents([...events, newEvent]);
+  // Color mapping for event types
+  const colorMap = {
+    lecture: 'bg-[#7B9EC5]',
+    assignment: 'bg-[#E08E79]',
+    exam: 'bg-[#D4574E]',
+    meeting: 'bg-[#88B088]',
+    study: 'bg-[#9A8C98]',
+    other: 'bg-[#A8B5C4]',
+  };
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setIsLoading(true);
+      const apiAvailable = await healthCheck();
+      setIsApiAvailable(apiAvailable);
+      
+      if (apiAvailable && localStorage.getItem('token')) {
+        try {
+          const data = await scheduleAPI.getAll();
+          // Map API data to display format
+          const mappedEvents = data.events.map(event => ({
+            id: event._id,
+            title: event.title,
+            type: event.type === 'lecture' ? 'class' : event.type,
+            time: event.endTime ? `${event.startTime} - ${event.endTime}` : event.startTime,
+            location: event.location,
+            course: event.courseName,
+            color: colorMap[event.type] || 'bg-[#7B9EC5]',
+            date: new Date(event.date),
+            due: event.type === 'assignment' || event.type === 'exam',
+          }));
+          setEvents(mappedEvents);
+        } catch (error) {
+          console.error('Failed to fetch schedule:', error);
+          setEvents(initialEvents);
+        }
+      } else {
+        setEvents(initialEvents);
+      }
+      setIsLoading(false);
+    };
+
+    fetchEvents();
+  }, [user]);
+
+  const handleAddEvent = async (newEvent) => {
+    if (isApiAvailable && localStorage.getItem('token')) {
+      try {
+        const eventData = {
+          title: newEvent.title,
+          type: newEvent.type === 'class' ? 'lecture' : newEvent.type,
+          date: newEvent.date,
+          startTime: newEvent.time.split(' - ')[0],
+          endTime: newEvent.time.split(' - ')[1] || '',
+          location: newEvent.location || '',
+          courseName: newEvent.course || '',
+          color: newEvent.color?.replace('bg-[', '').replace(']', '') || 'blue',
+        };
+        const data = await scheduleAPI.create(eventData);
+        setEvents([...events, {
+          ...newEvent,
+          id: data.event._id,
+        }]);
+      } catch (error) {
+        console.error('Failed to create event:', error);
+        // Still add locally for demo
+        setEvents([...events, newEvent]);
+      }
+    } else {
+      setEvents([...events, newEvent]);
+    }
   };
 
   const handleEventClick = (event) => {
@@ -660,10 +735,31 @@ const Schedule = () => {
   };
   
   const handleToday = () => {
-    const today = new Date(2026, 1, 28); // Demo: Feb 28, 2026
-    setCurrentDate(today);
-    setSelectedDate(today);
+    const todayDate = new Date();
+    setCurrentDate(new Date(todayDate.getFullYear(), todayDate.getMonth(), 1));
+    setSelectedDate(todayDate);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-3">
+              <CalendarIcon className="h-8 w-8 text-muted-foreground" />
+              Schedule
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              View your classes and upcoming assignments
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

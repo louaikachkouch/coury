@@ -147,11 +147,15 @@ const Settings = () => {
             <div className="flex justify-center mb-4">
               <div className="relative">
                 <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-                  <img 
-                    src="https://i.pravatar.cc/150?u=a042581f4e29026704d" 
-                    alt="User" 
-                    className="h-full w-full object-cover"
-                  />
+                  {user?.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt={user.name || 'User'} 
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-10 w-10 text-primary" />
+                  )}
                 </div>
                 <button className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-white text-xs">
                   <User className="h-3 w-3" />
@@ -400,11 +404,15 @@ const Settings = () => {
       <Card className="p-6 border-none shadow-sm">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-            <img 
-              src="https://i.pravatar.cc/150?u=a042581f4e29026704d" 
-              alt="User" 
-              className="h-full w-full object-cover"
-            />
+            {user?.avatar ? (
+              <img 
+                src={user.avatar} 
+                alt={user.name || 'User'} 
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <User className="h-8 w-8 text-primary" />
+            )}
           </div>
           <div className="flex-1">
             <h2 className="text-xl font-bold">{profile.name}</h2>

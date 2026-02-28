@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Search, Plus, ChevronRight, X } from 'lucide-react';
+import { BookOpen, Clock, Search, Plus, ChevronRight, X, Loader2, Check } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import { coursesAPI, healthCheck } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const courseColors = [
   { color: 'bg-[#E08E79]/15 text-[#C96951]', solidColor: 'bg-[#E08E79]', name: 'Coral' },
@@ -156,9 +158,9 @@ const AddCourseModal = ({ onClose, onAdd }) => {
   );
 };
 
-const allCourses = [
+const fallbackCourses = [
   {
-    id: 1,
+    _id: '1',
     title: 'Advanced Psychology',
     code: 'PSY 301',
     instructor: 'Dr. Sarah Jenkins',
@@ -169,9 +171,10 @@ const allCourses = [
     description: 'Explore advanced concepts in cognitive psychology, including perception, memory, and decision-making processes.',
     credits: 3,
     schedule: 'Mon, Wed 10:00 AM - 11:30 AM',
+    isEnrolled: true,
   },
   {
-    id: 2,
+    _id: '2',
     title: 'Creative Writing',
     code: 'ENG 205',
     instructor: 'Prof. Michael Chen',
@@ -182,9 +185,10 @@ const allCourses = [
     description: 'Develop your creative writing skills through fiction, poetry, and narrative non-fiction exercises.',
     credits: 3,
     schedule: 'Tue, Thu 2:00 PM - 3:30 PM',
+    isEnrolled: true,
   },
   {
-    id: 3,
+    _id: '3',
     title: 'Intro to Graphic Design',
     code: 'DES 101',
     instructor: 'Elena Rodriguez',
@@ -195,23 +199,25 @@ const allCourses = [
     description: 'Learn the fundamentals of graphic design including typography, color theory, and layout principles.',
     credits: 4,
     schedule: 'Mon, Wed, Fri 1:00 PM - 2:00 PM',
+    isEnrolled: true,
   },
   {
-    id: 4,
+    _id: '4',
     title: 'Data Structures',
     code: 'CS 201',
     instructor: 'Dr. James Wilson',
     color: 'bg-[#7B9EC5]/15 text-[#5A7DA4]',
     solidColor: 'bg-[#7B9EC5]',
-    progress: 60,
-    nextDue: 'Wednesday, 11:59 PM',
+    progress: 0,
+    nextDue: 'Enroll to start',
     description: 'Study fundamental data structures and algorithms including arrays, linked lists, trees, and graphs.',
     credits: 4,
     schedule: 'Tue, Thu 9:00 AM - 10:30 AM',
+    isEnrolled: false,
   },
 ];
 
-const CourseCard = ({ course, onClick }) => {
+const CourseCard = ({ course, onClick, onEnroll, enrolling }) => {
   return (
     <Card 
       className="p-5 border-none shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden group cursor-pointer"
@@ -222,7 +228,7 @@ const CourseCard = ({ course, onClick }) => {
       <div className="flex justify-between items-start mb-4">
         <div>
           <div className="text-xs font-semibold tracking-wider text-muted-foreground mb-1 uppercase">
-            {course.code}
+            {course.code || course.category}
           </div>
           <h3 className="font-bold text-lg font-heading leading-tight group-hover:text-primary transition-colors">
             {course.title}
@@ -239,26 +245,48 @@ const CourseCard = ({ course, onClick }) => {
       </p>
 
       <div className="space-y-3">
-        <div>
-          <div className="flex justify-between text-xs mb-1.5 font-medium">
-            <span className="text-muted-foreground">Course Progress</span>
-            <span className="text-foreground">{course.progress}%</span>
-          </div>
-          <div className="h-2 w-full bg-muted/50 rounded-full overflow-hidden">
-            <div
-              className={`h-full ${course.solidColor} rounded-full`}
-              style={{ width: `${course.progress}%` }}
-            />
-          </div>
-        </div>
+        {course.isEnrolled ? (
+          <>
+            <div>
+              <div className="flex justify-between text-xs mb-1.5 font-medium">
+                <span className="text-muted-foreground">Course Progress</span>
+                <span className="text-foreground">{course.progress || 0}%</span>
+              </div>
+              <div className="h-2 w-full bg-muted/50 rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${course.solidColor} rounded-full`}
+                  style={{ width: `${course.progress || 0}%` }}
+                />
+              </div>
+            </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-border/30">
-          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
-            <span>{course.nextDue}</span>
+            <div className="flex items-center justify-between pt-2 border-t border-border/30">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{course.nextDue || 'View course'}</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+          </>
+        ) : (
+          <div className="pt-2 border-t border-border/30">
+            <Button 
+              className="w-full gap-2" 
+              onClick={(e) => {
+                e.stopPropagation();
+                onEnroll(course._id);
+              }}
+              disabled={enrolling === course._id}
+            >
+              {enrolling === course._id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              Enroll Now
+            </Button>
           </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-        </div>
+        )}
       </div>
     </Card>
   );
@@ -266,25 +294,105 @@ const CourseCard = ({ course, onClick }) => {
 
 const Courses = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
-  const [courses, setCourses] = useState(allCourses);
+  const [courses, setCourses] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState(null);
+  const [isApiAvailable, setIsApiAvailable] = useState(false);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setIsLoading(true);
+      const apiAvailable = await healthCheck();
+      setIsApiAvailable(apiAvailable);
+      
+      if (apiAvailable && localStorage.getItem('token')) {
+        try {
+          const data = await coursesAPI.getAll();
+          // Map API data to display format
+          const mappedCourses = data.courses.map((course, index) => ({
+            ...course,
+            code: course.category?.substring(0, 3).toUpperCase() + ' ' + (100 + index),
+            ...courseColors[index % courseColors.length],
+            nextDue: course.isEnrolled ? 'View course for details' : 'Enroll to start',
+            credits: 3,
+            schedule: 'View course for schedule',
+          }));
+          setCourses(mappedCourses);
+        } catch (error) {
+          console.error('Failed to fetch courses:', error);
+          setCourses(fallbackCourses);
+        }
+      } else {
+        setCourses(fallbackCourses);
+      }
+      setIsLoading(false);
+    };
+
+    fetchCourses();
+  }, [user]);
+
+  const handleEnroll = async (courseId) => {
+    if (!isApiAvailable) {
+      // Demo mode: just mark as enrolled
+      setCourses(courses.map(c => 
+        c._id === courseId ? { ...c, isEnrolled: true, progress: 0 } : c
+      ));
+      return;
+    }
+
+    setEnrolling(courseId);
+    try {
+      await coursesAPI.enroll(courseId);
+      setCourses(courses.map(c => 
+        c._id === courseId ? { ...c, isEnrolled: true, progress: 0 } : c
+      ));
+    } catch (error) {
+      console.error('Failed to enroll:', error);
+    }
+    setEnrolling(null);
+  };
 
   const addCourse = (newCourse) => {
-    setCourses([newCourse, ...courses]);
+    setCourses([{ ...newCourse, _id: newCourse.id.toString() }, ...courses]);
   };
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (course.code || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.instructor.toLowerCase().includes(searchQuery.toLowerCase());
     
     if (filter === 'all') return matchesSearch;
-    if (filter === 'in-progress') return matchesSearch && course.progress > 0 && course.progress < 100;
+    if (filter === 'enrolled') return matchesSearch && course.isEnrolled;
+    if (filter === 'in-progress') return matchesSearch && course.isEnrolled && course.progress > 0 && course.progress < 100;
     if (filter === 'completed') return matchesSearch && course.progress === 100;
     return matchesSearch;
   });
+
+  // Separate enrolled and available courses
+  const enrolledCourses = filteredCourses.filter(c => c.isEnrolled);
+  const availableCourses = filteredCourses.filter(c => !c.isEnrolled);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
+            Your Courses
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Manage and track your enrolled courses
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -324,13 +432,20 @@ const Courses = () => {
             className="w-full h-10 pl-10 pr-4 rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button 
             variant={filter === 'all' ? 'default' : 'ghost'}
             onClick={() => setFilter('all')}
             className="rounded-xl"
           >
             All
+          </Button>
+          <Button 
+            variant={filter === 'enrolled' ? 'default' : 'ghost'}
+            onClick={() => setFilter('enrolled')}
+            className="rounded-xl"
+          >
+            Enrolled
           </Button>
           <Button 
             variant={filter === 'in-progress' ? 'default' : 'ghost'}
@@ -349,18 +464,49 @@ const Courses = () => {
         </div>
       </div>
 
-      {/* Course Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredCourses.map((course) => (
-          <CourseCard 
-            key={course.id} 
-            course={course} 
-            onClick={() => navigate(`/courses/${course.id}`)}
-          />
-        ))}
-      </div>
+      {/* Your Courses Section */}
+      {enrolledCourses.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold font-heading flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-muted-foreground" />
+            Your Courses
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {enrolledCourses.map((course) => (
+              <CourseCard 
+                key={course._id} 
+                course={course} 
+                onClick={() => navigate(`/courses/${course._id}`)}
+                onEnroll={handleEnroll}
+                enrolling={enrolling}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
-      {filteredCourses.length === 0 && (
+      {/* Courses to Enroll Section */}
+      {availableCourses.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold font-heading flex items-center gap-2">
+            <Plus className="h-5 w-5 text-muted-foreground" />
+            Courses to Enroll
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {availableCourses.map((course) => (
+              <CourseCard 
+                key={course._id} 
+                course={course} 
+                onClick={() => navigate(`/courses/${course._id}`)}
+                onEnroll={handleEnroll}
+                enrolling={enrolling}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {enrolledCourses.length === 0 && availableCourses.length === 0 && (
         <div className="text-center py-12">
           <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="font-semibold text-lg">No courses found</h3>

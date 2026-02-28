@@ -15,15 +15,15 @@ const Profile = () => {
   const [avatarPreview, setAvatarPreview] = useState(null);
   
   const [formData, setFormData] = useState({
-    name: user?.name || 'Alex Rivera',
-    email: user?.email || 'alex.rivera@university.edu',
-    phone: '+1 (555) 123-4567',
-    location: 'San Francisco, CA',
-    major: user?.major || 'Computer Science',
-    year: user?.year || 'Junior Year',
-    bio: 'Passionate about technology and learning new things. Currently focusing on web development and machine learning.',
-    website: 'https://alexrivera.dev',
-    dateOfBirth: '1998-05-15',
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    location: user?.location || '',
+    major: user?.major || '',
+    year: user?.year || '',
+    bio: user?.bio || '',
+    website: user?.website || '',
+    dateOfBirth: user?.dateOfBirth || '',
   });
 
   const handleChange = (e) => {
@@ -55,25 +55,30 @@ const Profile = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Update user context
-    if (updateUser) {
-      updateUser({
+    try {
+      // Update user context (handles API call if available)
+      await updateUser({
         name: formData.name,
         email: formData.email,
+        phone: formData.phone,
+        location: formData.location,
+        dateOfBirth: formData.dateOfBirth,
+        website: formData.website,
         major: formData.major,
         year: formData.year,
+        bio: formData.bio,
         avatar: avatarPreview || user?.avatar,
       });
+      
+      setIsSaved(true);
+      
+      // Reset saved indicator after 3 seconds
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
-    setIsSaved(true);
-    
-    // Reset saved indicator after 3 seconds
-    setTimeout(() => setIsSaved(false), 3000);
   };
 
   const yearOptions = [
@@ -113,12 +118,16 @@ const Profile = () => {
           <h2 className="text-lg font-bold font-heading mb-4">Profile Picture</h2>
           <div className="flex items-center gap-6">
             <div className="relative group">
-              <div className="h-24 w-24 rounded-full overflow-hidden bg-primary/20 border-4 border-background shadow-lg">
-                <img 
-                  src={avatarPreview || user?.avatar || 'https://i.pravatar.cc/150?u=a042581f4e29026704d'} 
-                  alt="Profile" 
-                  className="h-full w-full object-cover"
-                />
+              <div className="h-24 w-24 rounded-full overflow-hidden bg-primary/20 border-4 border-background shadow-lg flex items-center justify-center">
+                {avatarPreview || user?.avatar ? (
+                  <img 
+                    src={avatarPreview || user?.avatar} 
+                    alt="Profile" 
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <User className="h-12 w-12 text-primary" />
+                )}
               </div>
               <button
                 type="button"
