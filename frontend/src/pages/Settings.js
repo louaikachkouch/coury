@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon, User, Bell, Palette, Shield, HelpCircle, LogOut, ChevronRight, Moon, Sun, X, Check, Mail, Lock, Eye, EyeOff, MessageSquare, Send } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 // Modal component
 const Modal = ({ title, onClose, children }) => (
@@ -70,7 +72,9 @@ const Toggle = ({ enabled, onChange }) => (
 );
 
 const Settings = () => {
+  const navigate = useNavigate();
   const { darkMode, toggleDarkMode } = useTheme();
+  const { logout, user } = useAuth();
   
   const [notifications, setNotifications] = useState({
     email: true,
@@ -129,9 +133,9 @@ const Settings = () => {
   };
 
   const handleSignOut = () => {
-    // In a real app, this would clear auth tokens and redirect
-    alert('You have been signed out');
+    logout();
     setActiveModal(null);
+    navigate('/login');
   };
 
   return (
@@ -417,7 +421,7 @@ const Settings = () => {
           icon={User}
           label="Personal Information"
           description="Update your name, email, and profile picture"
-          onClick={() => setActiveModal('profile')}
+          onClick={() => navigate('/profile')}
         />
         <SettingsItem 
           icon={Shield}

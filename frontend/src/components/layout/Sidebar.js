@@ -46,20 +46,17 @@ const Sidebar = () => {
       onMouseLeave={handleMouseLeave}
     >
       {/* Logo */}
-      <div className={`h-16 flex items-center border-b border-border/50 ${isExpanded ? 'px-4' : 'justify-center'}`}>
-        <NavLink to="/" className={`flex items-center ${isExpanded ? 'gap-3' : ''}`}>
+      <div className={`h-16 flex items-center border-b border-border/50 overflow-hidden ${isExpanded ? 'px-4' : 'justify-center px-3'}`}
+        style={{ transition: 'padding 400ms cubic-bezier(0.4, 0, 0.2, 1)' }}
+      >
+        <NavLink to="/" className="flex items-center gap-3">
           <div className="bg-primary/10 text-primary p-2 rounded-xl flex-shrink-0">
             <BookOpen className="h-5 w-5" />
           </div>
           <span 
-            className={`font-heading font-bold text-lg text-foreground tracking-tight whitespace-nowrap ${
-              isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-3 pointer-events-none absolute'
+            className={`font-heading font-bold text-lg text-foreground tracking-tight whitespace-nowrap transition-all duration-300 ${
+              isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 w-0'
             }`}
-            style={{
-              transition: isExpanded 
-                ? 'opacity 350ms cubic-bezier(0.4, 0, 0.2, 1) 100ms, transform 350ms cubic-bezier(0.4, 0, 0.2, 1) 100ms'
-                : 'opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
           >
             Coury
           </span>
@@ -72,13 +69,14 @@ const Sidebar = () => {
           <NavLink
             key={item.path}
             to={item.path}
-            className={`flex items-center rounded-xl transition-all duration-200 group relative ${
-              isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center w-11 h-11 mx-auto'
+            className={`flex items-center rounded-xl group relative overflow-hidden py-2.5 ${
+              isExpanded ? 'gap-3 px-3' : 'justify-center w-11 mx-auto px-0'
             } ${
               isActive(item.path)
                 ? 'text-primary bg-primary/10 font-medium'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
             }`}
+            style={{ transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
             title={!isExpanded ? item.label : undefined}
           >
             <item.icon
@@ -87,14 +85,9 @@ const Sidebar = () => {
               }`}
             />
             <span 
-              className={`whitespace-nowrap ${
-                isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-3 pointer-events-none'
+              className={`whitespace-nowrap transition-all duration-300 ${
+                isExpanded ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-2 w-0'
               }`}
-              style={{
-                transition: isExpanded 
-                  ? 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1) 150ms, transform 300ms cubic-bezier(0.4, 0, 0.2, 1) 150ms'
-                  : 'opacity 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
             >
               {item.label}
             </span>
@@ -118,41 +111,37 @@ const Sidebar = () => {
       {/* Footer */}
       <div className="p-3 border-t border-border/50">
         <div 
-          className="flex items-center gap-2 mb-2"
+          className={`flex gap-2 mb-2 ${
+            isExpanded ? 'flex-row items-center' : 'flex-col items-center'
+          }`}
           style={{
             transition: 'all 400ms cubic-bezier(0.4, 0, 0.2, 1)'
           }}
         >
           <NavLink
             to="/settings"
-            className={`flex items-center justify-center rounded-xl transition-colors duration-200 ${
+            className={`flex items-center justify-center rounded-xl overflow-hidden ${
               isExpanded ? 'flex-1 gap-3 px-3 py-2.5' : 'w-11 h-11'
             } ${
               isActive('/settings')
                 ? 'text-primary bg-primary/10 font-medium'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
             }`}
+            style={{ transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
             title={!isExpanded ? 'Settings' : undefined}
           >
             <Settings className="h-5 w-5 flex-shrink-0" />
             <span 
-              className={`whitespace-nowrap ${
-                isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-3 pointer-events-none absolute'
+              className={`whitespace-nowrap transition-all duration-300 ${
+                isExpanded ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-2 w-0'
               }`}
-              style={{
-                transition: isExpanded 
-                  ? 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1) 150ms, transform 300ms cubic-bezier(0.4, 0, 0.2, 1) 150ms'
-                  : 'opacity 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
             >
               Settings
             </span>
           </NavLink>
           <button
             onClick={toggleDarkMode}
-            className={`rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex-shrink-0 ${
-              isExpanded ? 'p-2.5' : 'w-11 h-11 flex items-center justify-center'
-            }`}
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex-shrink-0"
             title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -161,19 +150,15 @@ const Sidebar = () => {
 
         <NavLink to="/settings" className="block mt-2">
           <div 
-            className={`flex items-center rounded-xl bg-muted/30 hover:bg-muted/50 cursor-pointer ${
+            className={`flex items-center rounded-xl bg-muted/30 hover:bg-muted/50 cursor-pointer overflow-hidden ${
               isExpanded ? 'gap-3 px-2 py-2' : 'justify-center p-2'
             }`}
             style={{
               transition: 'all 400ms cubic-bezier(0.4, 0, 0.2, 1)'
             }}
           >
-            <div className={`rounded-full bg-primary/20 flex items-center justify-center border border-background shadow-sm overflow-hidden flex-shrink-0 ${
-              isExpanded ? 'h-9 w-9' : 'h-10 w-10'
-            }`}
-            style={{
-              transition: 'all 400ms cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
+            <div 
+              className="rounded-full bg-primary/20 flex items-center justify-center border border-background shadow-sm overflow-hidden flex-shrink-0 h-9 w-9"
             >
               <img 
                 src="https://i.pravatar.cc/150?u=a042581f4e29026704d" 
@@ -182,14 +167,9 @@ const Sidebar = () => {
               />
             </div>
             <div 
-              className={`flex flex-col ${
-                isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-3 pointer-events-none'
+              className={`flex flex-col transition-all duration-300 ${
+                isExpanded ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-2 w-0'
               }`}
-              style={{
-                transition: isExpanded 
-                  ? 'opacity 350ms cubic-bezier(0.4, 0, 0.2, 1) 200ms, transform 350ms cubic-bezier(0.4, 0, 0.2, 1) 200ms'
-                  : 'opacity 150ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
             >
               <span className="text-sm font-medium leading-none whitespace-nowrap">Alex Rivera</span>
               <span className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">Student</span>
