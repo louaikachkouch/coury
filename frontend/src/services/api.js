@@ -264,4 +264,5 @@ export const scheduleAPI = {
   }
 };
 
-export default { authAPI, userAPI, coursesAPI, scheduleAPI, healthCheck };
+const api = { authAPI, userAPI, coursesAPI, scheduleAPI, healthCheck };
+export default api;

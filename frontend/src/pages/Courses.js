@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Search, Plus, ChevronRight, X, Loader2, Check } from 'lucide-react';
+import { BookOpen, Clock, Search, Plus, ChevronRight, X, Loader2 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { coursesAPI, healthCheck } from '../services/api';

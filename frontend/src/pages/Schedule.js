@@ -360,6 +360,7 @@ const AddEventModal = ({ onClose, onAdd, selectedDate }) => {
   );
 };
 
+// eslint-disable-next-line no-unused-vars
 const DayColumn = ({ day, date, eventsForDay, isToday, onEventClick }) => {
   return (
     <div className={`flex-1 min-w-[140px] ${isToday ? 'bg-primary/5' : ''} rounded-xl p-3`}>
@@ -634,6 +635,16 @@ const UpcomingEvents = ({ events, onEventClick }) => {
   );
 };
 
+// Color mapping for event types (moved outside component to avoid dependency warning)
+const colorMap = {
+  lecture: 'bg-[#7B9EC5]',
+  assignment: 'bg-[#E08E79]',
+  exam: 'bg-[#D4574E]',
+  meeting: 'bg-[#88B088]',
+  study: 'bg-[#9A8C98]',
+  other: 'bg-[#A8B5C4]',
+};
+
 const Schedule = () => {
   const { user } = useAuth();
   const today = new Date();
@@ -644,16 +655,6 @@ const Schedule = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApiAvailable, setIsApiAvailable] = useState(false);
-
-  // Color mapping for event types
-  const colorMap = {
-    lecture: 'bg-[#7B9EC5]',
-    assignment: 'bg-[#E08E79]',
-    exam: 'bg-[#D4574E]',
-    meeting: 'bg-[#88B088]',
-    study: 'bg-[#9A8C98]',
-    other: 'bg-[#A8B5C4]',
-  };
 
   useEffect(() => {
     const fetchEvents = async () => {

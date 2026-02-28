@@ -68,6 +68,9 @@ const UpNextSection = () => {
   const { user } = useAuth();
   const [assignments, setAssignments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Used for re-fetching when user changes
+  const userId = user?._id;
 
   useEffect(() => {
     const fetchUpcoming = async () => {
@@ -113,7 +116,7 @@ const UpNextSection = () => {
     };
 
     fetchUpcoming();
-  }, []);
+  }, [userId]);
 
   const handleAssignmentClick = (assignment) => {
     navigate('/schedule');
