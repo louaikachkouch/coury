@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Clock, Loader2 } from 'lucide-react';
+import { BookOpen, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../ui/Card';
 import Button from '../ui/Button';

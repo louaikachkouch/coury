@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, FileText, Clock, ChevronRight, Loader2 } from 'lucide-react';
+import { CheckCircle2, FileText, Clock, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
