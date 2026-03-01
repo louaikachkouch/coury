@@ -9,11 +9,12 @@ const MobileHeader = () => {
   return (
     <header className="h-16 flex items-center justify-between px-4 border-b border-border/50 bg-card md:hidden">
       <NavLink to="/" className="flex items-center gap-2">
-        <img 
-          src="/logo.png" 
-          alt="Coury" 
-          className="h-10 object-contain"
-        />
+        <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
+          <BookOpen className="h-4 w-4" />
+        </div>
+        <span className="font-heading font-bold text-foreground tracking-tight">
+          Coury
+        </span>
       </NavLink>
       <NavLink to="/settings">
         <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">

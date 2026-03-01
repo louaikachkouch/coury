@@ -52,11 +52,16 @@ const Sidebar = () => {
         style={{ transition: 'padding 400ms cubic-bezier(0.4, 0, 0.2, 1)' }}
       >
         <NavLink to="/" className="flex items-center gap-3">
-          <img 
-            src="/logo.png" 
-            alt="Coury" 
-            className={`transition-all duration-300 object-contain ${isExpanded ? 'h-12' : 'h-10'}`}
-          />
+          <div className="bg-primary/10 text-primary p-2 rounded-xl flex-shrink-0">
+            <BookOpen className="h-5 w-5" />
+          </div>
+          <span 
+            className={`font-heading font-bold text-lg text-foreground tracking-tight whitespace-nowrap transition-all duration-300 ${
+              isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 w-0'
+            }`}
+          >
+            Coury
+          </span>
         </NavLink>
       </div>
 
