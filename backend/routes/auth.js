@@ -51,8 +51,8 @@ router.post(
         }
       });
     } catch (err) {
-      console.error(err.message);
-      res.status(500).json({ message: 'Server error' });
+      console.error('Registration error:', err);
+      res.status(500).json({ message: 'Server error', error: err.message });
     }
   }
 );

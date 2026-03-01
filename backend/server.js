@@ -6,6 +6,15 @@ const connectDB = require('./config/db');
 // Load env vars
 dotenv.config();
 
+// Validate required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`Error: ${envVar} environment variable is not set`);
+    process.exit(1);
+  }
+}
+
 // Connect to database
 connectDB();
 
