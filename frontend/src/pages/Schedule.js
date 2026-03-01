@@ -680,10 +680,15 @@ const Schedule = () => {
           setEvents(mappedEvents);
         } catch (error) {
           console.error('Failed to fetch schedule:', error);
-          setEvents(initialEvents);
+          // Don't use fallback - show empty state for real users
+          setEvents([]);
         }
-      } else {
+      } else if (!localStorage.getItem('token')) {
+        // Only use fallback in demo mode (not logged in)
         setEvents(initialEvents);
+      } else {
+        // API not available but logged in - show empty
+        setEvents([]);
       }
       setIsLoading(false);
     };

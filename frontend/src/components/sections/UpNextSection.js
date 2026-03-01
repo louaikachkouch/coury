@@ -107,10 +107,15 @@ const UpNextSection = () => {
           setAssignments(mappedEvents);
         } catch (error) {
           console.error('Failed to fetch upcoming:', error);
-          setAssignments(fallbackAssignments);
+          // Don't use fallback - show empty state for real users
+          setAssignments([]);
         }
-      } else {
+      } else if (!localStorage.getItem('token')) {
+        // Only use fallback in demo mode (not logged in)
         setAssignments(fallbackAssignments);
+      } else {
+        // API not available but logged in - show empty
+        setAssignments([]);
       }
       setIsLoading(false);
     };

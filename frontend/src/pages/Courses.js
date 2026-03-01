@@ -324,10 +324,15 @@ const Courses = () => {
           setCourses(mappedCourses);
         } catch (error) {
           console.error('Failed to fetch courses:', error);
-          setCourses(fallbackCourses);
+          // Don't use fallback - show empty state for real users
+          setCourses([]);
         }
-      } else {
+      } else if (!localStorage.getItem('token')) {
+        // Only use fallback in demo mode (not logged in)
         setCourses(fallbackCourses);
+      } else {
+        // API not available but logged in - show empty
+        setCourses([]);
       }
       setIsLoading(false);
     };
