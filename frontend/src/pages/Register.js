@@ -67,7 +67,7 @@ const Register = () => {
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary/5 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-        <div className="relative z-10 flex flex-col justify-center px-16">
+        <div className="relative z-10 flex flex-col justify-center px-16 animate-fadeIn">
           <div className="flex items-center gap-3 mb-8">
             <div className="bg-primary/10 text-primary p-3 rounded-xl">
               <BookOpen className="h-8 w-8" />

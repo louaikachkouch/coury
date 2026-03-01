@@ -400,7 +400,7 @@ const Courses = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fadeIn">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -512,10 +512,18 @@ const Courses = () => {
       )}
 
       {enrolledCourses.length === 0 && availableCourses.length === 0 && (
-        <div className="text-center py-12">
-          <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="font-semibold text-lg">No courses found</h3>
-          <p className="text-muted-foreground">Try adjusting your search or filter</p>
+        <div className="text-center py-16 animate-fadeIn">
+          <div className="bg-muted/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <BookOpen className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <h3 className="font-bold text-xl mb-2">No courses found</h3>
+          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+            Try adjusting your search or filter, or add a new course to get started
+          </p>
+          <Button onClick={() => setShowAddModal(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Your First Course
+          </Button>
         </div>
       )}
     </div>

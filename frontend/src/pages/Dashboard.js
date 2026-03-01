@@ -6,12 +6,12 @@ import AnnouncementCard from '../components/sections/AnnouncementCard';
 
 const Dashboard = () => {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fadeIn">
       {/* Hero Section */}
       <HeroSection />
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
         {/* Courses Section - Left Column */}
         <div className="lg:col-span-8">
           <CoursesSection />

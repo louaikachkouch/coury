@@ -163,15 +163,17 @@ const CoursesSection = () => {
             Your Courses
           </h2>
         </div>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="skeleton h-48 rounded-2xl" />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold font-heading flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-muted-foreground" />
@@ -186,16 +188,35 @@ const CoursesSection = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {courses.slice(0, 3).map((course) => (
-          <CourseCard 
-            key={course._id} 
-            course={course} 
-            onClick={() => navigate(`/courses/${course._id}`)}
-          />
-        ))}
-        <AddCourseCard onClick={() => navigate('/courses')} />
-      </div>
+      {courses.length === 0 ? (
+        <Card className="p-8 text-center border-2 border-dashed border-border/60">
+          <div className="flex flex-col items-center gap-4">
+            <div className="bg-muted/50 w-16 h-16 rounded-full flex items-center justify-center">
+              <BookOpen className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg mb-1">No courses yet</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                Get started by enrolling in your first course
+              </p>
+              <Button onClick={() => navigate('/courses')} className="gap-2">
+                Browse Courses
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 stagger-children">
+          {courses.slice(0, 3).map((course) => (
+            <CourseCard 
+              key={course._id} 
+              course={course} 
+              onClick={() => navigate(`/courses/${course._id}`)}
+            />
+          ))}
+          <AddCourseCard onClick={() => navigate('/courses')} />
+        </div>
+      )}
     </div>
   );
 };

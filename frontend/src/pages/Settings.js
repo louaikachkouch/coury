@@ -139,7 +139,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="space-y-8 max-w-3xl animate-fadeIn">
       {/* Modals */}
       {activeModal === 'profile' && (
         <Modal title="Personal Information" onClose={() => setActiveModal(null)}>

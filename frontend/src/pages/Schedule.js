@@ -768,7 +768,7 @@ const Schedule = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fadeIn">
       {/* Modals */}
       {showAddModal && (
         <AddEventModal 

@@ -91,7 +91,7 @@ const Profile = () => {
   ];
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="space-y-8 max-w-3xl animate-fadeIn">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button 

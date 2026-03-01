@@ -136,15 +136,28 @@ const UpNextSection = () => {
             Up Next
           </h2>
         </div>
-        <Card className="border-none shadow-sm p-8 flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <Card className="border-none shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-border/40 bg-secondary/30">
+            <div className="skeleton h-4 w-24 rounded" />
+          </div>
+          <div className="divide-y divide-border/40">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-4 flex items-start gap-3">
+                <div className="skeleton h-4 w-4 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <div className="skeleton h-4 w-3/4 rounded" />
+                  <div className="skeleton h-3 w-1/2 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold font-heading flex items-center gap-2">
           <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
@@ -175,8 +188,12 @@ const UpNextSection = () => {
             ))}
           </div>
         ) : (
-          <div className="p-8 text-center text-muted-foreground">
-            <p>No upcoming tasks this week!</p>
+          <div className="p-8 text-center">
+            <div className="bg-muted/50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 className="h-6 w-6 text-primary" />
+            </div>
+            <p className="font-medium text-foreground mb-1">All caught up!</p>
+            <p className="text-sm text-muted-foreground">No upcoming tasks this week</p>
           </div>
         )}
 

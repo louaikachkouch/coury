@@ -204,3 +204,125 @@ body,
     left: 100%;
   }
 }
+
+/* ===== UX ENHANCEMENTS ===== */
+
+/* Smooth page transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+.animate-slideIn { animation: slideIn 0.3s ease-out; }
+.animate-scaleIn { animation: scaleIn 0.2s ease-out; }
+
+/* Staggered children animation */
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+
+/* Better form inputs */
+input, textarea, select {
+  @apply transition-all duration-200 ease-out;
+}
+
+input:focus, textarea:focus, select:focus {
+  @apply outline-none ring-2 ring-primary/30 border-primary/50;
+}
+
+input::placeholder, textarea::placeholder {
+  @apply text-muted-foreground/60;
+}
+
+/* Better button press feedback */
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Skeleton loading effect */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.skeleton {
+  @apply bg-muted rounded-lg;
+  animation: pulse-subtle 1.5s ease-in-out infinite;
+}
+
+/* Toast / notification styles */
+.toast-enter {
+  animation: slideIn 0.3s ease-out, fadeIn 0.3s ease-out;
+}
+
+/* Improved focus-visible for accessibility */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+}
+
+/* Better link hover */
+a {
+  @apply transition-colors duration-150;
+}
+
+/* Improved disabled states */
+.disabled, [disabled] {
+  @apply opacity-50 cursor-not-allowed pointer-events-none;
+}
+
+/* Loading spinner animation */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 1.5s linear infinite;
+}
+
+/* Hover lift effect */
+.hover-lift {
+  @apply transition-all duration-200;
+}
+
+.hover-lift:hover {
+  @apply -translate-y-0.5 shadow-lg;
+}
+
+/* Glass morphism effect */
+.glass {
+  @apply bg-card/80 backdrop-blur-lg border border-border/50;
+}
+
+/* Better selection */
+::selection {
+  @apply bg-primary/20 text-foreground;
+}
+
+/* Smooth image loading */
+img {
+  @apply transition-opacity duration-300;
+}
+
+img[loading] {
+  @apply opacity-0;
+}
+
+img:not([loading]) {
+  @apply opacity-100;
+}
+
