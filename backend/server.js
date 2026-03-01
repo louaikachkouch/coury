@@ -13,7 +13,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: 'https://coury.vercel.app',
   credentials: true
 }));
 app.use(express.json());
