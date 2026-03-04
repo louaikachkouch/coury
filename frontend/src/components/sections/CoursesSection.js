@@ -6,40 +6,6 @@ import Button from '../ui/Button';
 import { coursesAPI, healthCheck } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
-// Fallback courses for demo mode
-const fallbackCourses = [
-  {
-    _id: '1',
-    title: 'Advanced Psychology',
-    code: 'PSY 301',
-    instructor: 'Dr. Sarah Jenkins',
-    color: 'bg-[#E08E79]/15 text-[#C96951]',
-    solidColor: 'bg-[#E08E79]',
-    progress: 75,
-    nextDue: 'Tomorrow, 11:59 PM',
-  },
-  {
-    _id: '2',
-    title: 'Creative Writing',
-    code: 'ENG 205',
-    instructor: 'Prof. Michael Chen',
-    color: 'bg-[#88B088]/15 text-[#6B916B]',
-    solidColor: 'bg-[#88B088]',
-    progress: 40,
-    nextDue: 'Friday, 5:00 PM',
-  },
-  {
-    _id: '3',
-    title: 'Intro to Graphic Design',
-    code: 'DES 101',
-    instructor: 'Elena Rodriguez',
-    color: 'bg-[#9A8C98]/15 text-[#7A6C78]',
-    solidColor: 'bg-[#9A8C98]',
-    progress: 90,
-    nextDue: 'No upcoming assignments',
-  },
-];
-
 const colorPalette = [
   { color: 'bg-[#E08E79]/15 text-[#C96951]', solidColor: 'bg-[#E08E79]' },
   { color: 'bg-[#88B088]/15 text-[#6B916B]', solidColor: 'bg-[#88B088]' },
@@ -138,14 +104,10 @@ const CoursesSection = () => {
           setCourses(mappedCourses);
         } catch (error) {
           console.error('Failed to fetch courses:', error);
-          // Don't use fallback - show empty state for real users
           setCourses([]);
         }
-      } else if (!localStorage.getItem('token')) {
-        // Only use fallback courses in demo mode (not logged in)
-        setCourses(fallbackCourses);
       } else {
-        // API not available but logged in - show empty
+        // No API or not logged in - show empty
         setCourses([]);
       }
       setIsLoading(false);

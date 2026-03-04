@@ -1,95 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, ChevronLeft, FileText, Video, Calendar, Users, X, MessageSquare, Download, Upload, Eye, CheckCircle, Play, Plus } from 'lucide-react';
+import { BookOpen, Clock, ChevronLeft, FileText, Video, Calendar, Users, X, MessageSquare, Download, Upload, Eye, CheckCircle, Play, Plus, Loader2 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import { coursesAPI, healthCheck } from '../services/api';
 
-const initialCourseData = {
-  1: {
-    id: 1,
-    title: 'Advanced Psychology',
-    code: 'PSY 301',
-    instructor: 'Dr. Sarah Jenkins',
-    color: 'bg-[#E08E79]/15 text-[#C96951]',
-    solidColor: 'bg-[#E08E79]',
-    progress: 75,
-    description: 'Explore advanced concepts in cognitive psychology, including perception, memory, and decision-making processes.',
-    credits: 3,
-    schedule: 'Mon, Wed 10:00 AM - 11:30 AM',
-    modules: [
-      { id: 1, title: 'Introduction to Cognitive Psychology', completed: true, type: 'video' },
-      { id: 2, title: 'Memory and Learning', completed: true, type: 'reading' },
-      { id: 3, title: 'Perception and Attention', completed: true, type: 'video' },
-      { id: 4, title: 'Decision Making', completed: false, type: 'reading' },
-      { id: 5, title: 'Cognitive Dissonance Essay', completed: false, type: 'assignment', due: 'Tomorrow, 11:59 PM' },
-    ],
-    announcements: [
-      { id: 1, title: 'Essay deadline extended', date: 'Feb 23, 2026' },
-      { id: 2, title: 'Office hours cancelled this week', date: 'Feb 22, 2026' },
-    ],
-  },
-  2: {
-    id: 2,
-    title: 'Creative Writing',
-    code: 'ENG 205',
-    instructor: 'Prof. Michael Chen',
-    color: 'bg-[#88B088]/15 text-[#6B916B]',
-    solidColor: 'bg-[#88B088]',
-    progress: 40,
-    description: 'Develop your creative writing skills through fiction, poetry, and narrative non-fiction exercises.',
-    credits: 3,
-    schedule: 'Tue, Thu 2:00 PM - 3:30 PM',
-    modules: [
-      { id: 1, title: 'Elements of Fiction', completed: true, type: 'reading' },
-      { id: 2, title: 'Character Development', completed: true, type: 'video' },
-      { id: 3, title: 'Short Story Draft 1', completed: false, type: 'assignment', due: 'Friday, 5:00 PM' },
-      { id: 4, title: 'Peer Review Log', completed: false, type: 'assignment', due: 'Next Monday, 10:00 AM' },
-    ],
-    announcements: [
-      { id: 1, title: 'Guest speaker next week', date: 'Feb 24, 2026' },
-    ],
-  },
-  3: {
-    id: 3,
-    title: 'Intro to Graphic Design',
-    code: 'DES 101',
-    instructor: 'Elena Rodriguez',
-    color: 'bg-[#9A8C98]/15 text-[#7A6C78]',
-    solidColor: 'bg-[#9A8C98]',
-    progress: 90,
-    description: 'Learn the fundamentals of graphic design including typography, color theory, and layout principles.',
-    credits: 4,
-    schedule: 'Mon, Wed, Fri 1:00 PM - 2:00 PM',
-    modules: [
-      { id: 1, title: 'Typography Basics', completed: true, type: 'video' },
-      { id: 2, title: 'Color Theory', completed: true, type: 'reading' },
-      { id: 3, title: 'Layout Principles', completed: true, type: 'video' },
-      { id: 4, title: 'Final Project Prep', completed: false, type: 'reading' },
-    ],
-    announcements: [],
-  },
-  4: {
-    id: 4,
-    title: 'Data Structures',
-    code: 'CS 201',
-    instructor: 'Dr. James Wilson',
-    color: 'bg-[#7B9EC5]/15 text-[#5A7DA4]',
-    solidColor: 'bg-[#7B9EC5]',
-    progress: 60,
-    description: 'Study fundamental data structures and algorithms including arrays, linked lists, trees, and graphs.',
-    credits: 4,
-    schedule: 'Tue, Thu 9:00 AM - 10:30 AM',
-    modules: [
-      { id: 1, title: 'Arrays and Linked Lists', completed: true, type: 'video' },
-      { id: 2, title: 'Stacks and Queues', completed: true, type: 'reading' },
-      { id: 3, title: 'Trees and Graphs', completed: false, type: 'video' },
-      { id: 4, title: 'Algorithm Analysis', completed: false, type: 'assignment', due: 'Wednesday, 11:59 PM' },
-    ],
-    announcements: [
-      { id: 1, title: 'Midterm review session', date: 'Feb 25, 2026' },
-    ],
-  },
-};
+const colorPalette = [
+  { color: 'bg-[#E08E79]/15 text-[#C96951]', solidColor: 'bg-[#E08E79]' },
+  { color: 'bg-[#88B088]/15 text-[#6B916B]', solidColor: 'bg-[#88B088]' },
+  { color: 'bg-[#9A8C98]/15 text-[#7A6C78]', solidColor: 'bg-[#9A8C98]' },
+  { color: 'bg-[#7EA8BE]/15 text-[#5A8AA0]', solidColor: 'bg-[#7EA8BE]' },
+];
 
 const ModuleItem = ({ module, onView, onToggle }) => {
   const getIcon = () => {
@@ -480,7 +401,7 @@ const AddContentModal = ({ onClose, onAdd }) => {
     e.preventDefault();
     if (!title.trim()) return;
     
-    // Create a URL for the uploaded file so it can be displayed
+    // Create a URL for the uploaded file so it can be displayed locally
     let fileUrl = null;
     if (selectedFile) {
       fileUrl = URL.createObjectURL(selectedFile);
@@ -494,6 +415,7 @@ const AddContentModal = ({ onClose, onAdd }) => {
       due: type === 'assignment' && dueDate ? dueDate : undefined,
       fileName: selectedFile?.name,
       fileUrl: fileUrl,
+      file: selectedFile, // Pass the actual file for upload
     });
     onClose();
   };
@@ -744,24 +666,79 @@ const DiscussionModal = ({ course, onClose }) => {
 const CourseDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [courseData, setCourseData] = useState(initialCourseData);
+  const [course, setCourse] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [showSyllabus, setShowSyllabus] = useState(false);
   const [showDiscussion, setShowDiscussion] = useState(false);
   const [showContentModal, setShowContentModal] = useState(false);
   const [selectedModule, setSelectedModule] = useState(null);
   const [showAddContent, setShowAddContent] = useState(false);
-  
-  const course = courseData[id];
 
-  const addNewContent = (newModule) => {
-    setCourseData(prev => {
-      const updated = { ...prev };
-      const courseModules = [...updated[id].modules, newModule];
-      const completedCount = courseModules.filter(m => m.completed).length;
-      const progress = Math.round((completedCount / courseModules.length) * 100);
-      updated[id] = { ...updated[id], modules: courseModules, progress };
-      return updated;
-    });
+  useEffect(() => {
+    const fetchCourse = async () => {
+      setIsLoading(true);
+      const isApiAvailable = await healthCheck();
+      
+      if (isApiAvailable && localStorage.getItem('token')) {
+        try {
+          const data = await coursesAPI.getById(id);
+          // Map API data to display format
+          const colorIndex = parseInt(id, 16) % colorPalette.length || 0;
+          const mappedCourse = {
+            ...data.course,
+            id: data.course._id,
+            code: data.course.category?.substring(0, 3).toUpperCase() + ' 101',
+            ...colorPalette[colorIndex],
+            modules: data.course.modules || [
+              { id: 1, title: 'Course Introduction', completed: false, type: 'video' },
+              { id: 2, title: 'Getting Started', completed: false, type: 'reading' },
+            ],
+            announcements: data.course.announcements || [],
+            credits: data.course.credits || 3,
+            schedule: data.course.schedule || 'See course details',
+          };
+          setCourse(mappedCourse);
+        } catch (error) {
+          console.error('Failed to fetch course:', error);
+          setCourse(null);
+        }
+      } else {
+        setCourse(null);
+      }
+      setIsLoading(false);
+    };
+
+    fetchCourse();
+  }, [id]);
+
+  const addNewContent = async (newModule) => {
+    if (!course) return;
+    
+    // Save to API with file upload
+    try {
+      const result = await coursesAPI.addContent(
+        course._id || course.id, 
+        {
+          title: newModule.title,
+          type: newModule.type,
+          due: newModule.due
+        },
+        newModule.file // Pass the file for upload
+      );
+      
+      // If server returned the file URL, update the module with it
+      if (result.uploadedFile?.fileUrl) {
+        newModule.fileUrl = `http://localhost:5000${result.uploadedFile.fileUrl}`;
+      }
+    } catch (error) {
+      console.error('Failed to save content to database:', error);
+    }
+    
+    // Update local state
+    const courseModules = [...(course.modules || []), newModule];
+    const completedCount = courseModules.filter(m => m.completed).length;
+    const progress = Math.round((completedCount / courseModules.length) * 100);
+    setCourse({ ...course, modules: courseModules, progress });
   };
 
   const openModuleContent = (module) => {
@@ -777,23 +754,29 @@ const CourseDetail = () => {
   };
 
   const toggleModuleCompletion = (moduleId) => {
-    setCourseData(prev => {
-      const updated = { ...prev };
-      const courseModules = updated[id].modules.map(m => 
-        m.id === moduleId ? { ...m, completed: !m.completed } : m
-      );
-      const completedCount = courseModules.filter(m => m.completed).length;
-      const progress = Math.round((completedCount / courseModules.length) * 100);
-      updated[id] = { ...updated[id], modules: courseModules, progress };
-      return updated;
-    });
+    if (!course) return;
+    const courseModules = (course.modules || []).map(m => 
+      m.id === moduleId ? { ...m, completed: !m.completed } : m
+    );
+    const completedCount = courseModules.filter(m => m.completed).length;
+    const progress = Math.round((completedCount / courseModules.length) * 100);
+    setCourse({ ...course, modules: courseModules, progress });
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!course) {
     return (
       <div className="text-center py-12">
         <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
         <h3 className="font-semibold text-lg">Course not found</h3>
+        <p className="text-muted-foreground mt-2">Please log in and ensure the course exists.</p>
         <Button variant="ghost" onClick={() => navigate('/courses')} className="mt-4">
           Back to Courses
         </Button>

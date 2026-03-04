@@ -6,30 +6,6 @@ import Button from '../ui/Button';
 import { scheduleAPI, healthCheck } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
-const fallbackAssignments = [
-  {
-    id: 1,
-    course: 'Advanced Psychology',
-    title: 'Cognitive Dissonance Essay',
-    due: 'Tomorrow, 11:59 PM',
-    type: 'Essay',
-  },
-  {
-    id: 2,
-    course: 'Creative Writing',
-    title: 'Short Story Draft 1',
-    due: 'Friday, 5:00 PM',
-    type: 'Draft',
-  },
-  {
-    id: 3,
-    course: 'Creative Writing',
-    title: 'Peer Review Log',
-    due: 'Next Monday, 10:00 AM',
-    type: 'Review',
-  },
-];
-
 const AssignmentItem = ({ assignment }) => {
   return (
     <div className="p-4 hover:bg-muted/30 transition-colors cursor-pointer group">
@@ -107,14 +83,10 @@ const UpNextSection = () => {
           setAssignments(mappedEvents);
         } catch (error) {
           console.error('Failed to fetch upcoming:', error);
-          // Don't use fallback - show empty state for real users
           setAssignments([]);
         }
-      } else if (!localStorage.getItem('token')) {
-        // Only use fallback in demo mode (not logged in)
-        setAssignments(fallbackAssignments);
       } else {
-        // API not available but logged in - show empty
+        // No API or not logged in - show empty
         setAssignments([]);
       }
       setIsLoading(false);

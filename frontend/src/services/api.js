@@ -172,6 +172,62 @@ export const coursesAPI = {
       throw new Error(data.message || 'Failed to unenroll');
     }
     return data;
+  },
+
+  // Create a new course
+  create: async (courseData) => {
+    const response = await fetch(`${API_URL}/courses`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(courseData)
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create course');
+    }
+    return data;
+  },
+
+  // Add content to a course (with file upload support)
+  addContent: async (courseId, contentData, file = null) => {
+    const formData = new FormData();
+    formData.append('title', contentData.title);
+    formData.append('type', contentData.type || 'reading');
+    if (contentData.due) formData.append('due', contentData.due);
+    
+    // Add file if provided
+    if (file) {
+      formData.append('file', file);
+    }
+    
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/courses/${courseId}/content`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+        // Note: Don't set Content-Type header - browser will set it with boundary for FormData
+      },
+      body: formData
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to add content');
+    }
+    return data;
+  },
+
+  // Update a course
+  update: async (courseId, courseData) => {
+    const response = await fetch(`${API_URL}/courses/${courseId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(courseData)
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update course');
+    }
+    return data;
   }
 };
 

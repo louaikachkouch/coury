@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Search, Plus, ChevronRight, X, Loader2 } from 'lucide-react';
+import { BookOpen, Clock, Search, Plus, ChevronRight, X, Loader2, PlusCircle } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { coursesAPI, healthCheck } from '../services/api';
@@ -158,65 +158,6 @@ const AddCourseModal = ({ onClose, onAdd }) => {
   );
 };
 
-const fallbackCourses = [
-  {
-    _id: '1',
-    title: 'Advanced Psychology',
-    code: 'PSY 301',
-    instructor: 'Dr. Sarah Jenkins',
-    color: 'bg-[#E08E79]/15 text-[#C96951]',
-    solidColor: 'bg-[#E08E79]',
-    progress: 75,
-    nextDue: 'Tomorrow, 11:59 PM',
-    description: 'Explore advanced concepts in cognitive psychology, including perception, memory, and decision-making processes.',
-    credits: 3,
-    schedule: 'Mon, Wed 10:00 AM - 11:30 AM',
-    isEnrolled: true,
-  },
-  {
-    _id: '2',
-    title: 'Creative Writing',
-    code: 'ENG 205',
-    instructor: 'Prof. Michael Chen',
-    color: 'bg-[#88B088]/15 text-[#6B916B]',
-    solidColor: 'bg-[#88B088]',
-    progress: 40,
-    nextDue: 'Friday, 5:00 PM',
-    description: 'Develop your creative writing skills through fiction, poetry, and narrative non-fiction exercises.',
-    credits: 3,
-    schedule: 'Tue, Thu 2:00 PM - 3:30 PM',
-    isEnrolled: true,
-  },
-  {
-    _id: '3',
-    title: 'Intro to Graphic Design',
-    code: 'DES 101',
-    instructor: 'Elena Rodriguez',
-    color: 'bg-[#9A8C98]/15 text-[#7A6C78]',
-    solidColor: 'bg-[#9A8C98]',
-    progress: 90,
-    nextDue: 'No upcoming assignments',
-    description: 'Learn the fundamentals of graphic design including typography, color theory, and layout principles.',
-    credits: 4,
-    schedule: 'Mon, Wed, Fri 1:00 PM - 2:00 PM',
-    isEnrolled: true,
-  },
-  {
-    _id: '4',
-    title: 'Data Structures',
-    code: 'CS 201',
-    instructor: 'Dr. James Wilson',
-    color: 'bg-[#7B9EC5]/15 text-[#5A7DA4]',
-    solidColor: 'bg-[#7B9EC5]',
-    progress: 0,
-    nextDue: 'Enroll to start',
-    description: 'Study fundamental data structures and algorithms including arrays, linked lists, trees, and graphs.',
-    credits: 4,
-    schedule: 'Tue, Thu 9:00 AM - 10:30 AM',
-    isEnrolled: false,
-  },
-];
-
 const CourseCard = ({ course, onClick, onEnroll, enrolling }) => {
   return (
     <Card 
@@ -324,14 +265,10 @@ const Courses = () => {
           setCourses(mappedCourses);
         } catch (error) {
           console.error('Failed to fetch courses:', error);
-          // Don't use fallback - show empty state for real users
           setCourses([]);
         }
-      } else if (!localStorage.getItem('token')) {
-        // Only use fallback in demo mode (not logged in)
-        setCourses(fallbackCourses);
       } else {
-        // API not available but logged in - show empty
+        // No API or not logged in - show empty
         setCourses([]);
       }
       setIsLoading(false);
@@ -361,8 +298,33 @@ const Courses = () => {
     setEnrolling(null);
   };
 
-  const addCourse = (newCourse) => {
-    setCourses([{ ...newCourse, _id: newCourse.id.toString() }, ...courses]);
+  const addCourse = async (newCourse) => {
+    try {
+      const data = await coursesAPI.create({
+        title: newCourse.title,
+        description: newCourse.description,
+        instructor: newCourse.instructor,
+        code: newCourse.code,
+        schedule: newCourse.schedule,
+        credits: newCourse.credits,
+        category: newCourse.code?.split(' ')[0] || 'General',
+        duration: '1h',
+        level: 'Beginner'
+      });
+      // Add the created course to the list with display formatting
+      const colorIndex = courses.length % courseColors.length;
+      setCourses([{
+        ...data.course,
+        _id: data.course._id,
+        code: newCourse.code,
+        ...courseColors[colorIndex],
+        isEnrolled: false,
+        progress: 0,
+        nextDue: 'No upcoming assignments'
+      }, ...courses]);
+    } catch (error) {
+      console.error('Failed to create course:', error);
+    }
   };
 
   const filteredCourses = courses.filter(course => {
@@ -411,10 +373,16 @@ const Courses = () => {
             Manage and track your enrolled courses
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setShowAddModal(true)}>
-          <Plus className="h-4 w-4" />
-          Add Course
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="ghost" className="gap-2" onClick={() => setShowAddModal(true)}>
+            <Plus className="h-4 w-4" />
+            Add Course
+          </Button>
+          <Button className="gap-2" onClick={() => setShowAddModal(true)}>
+            <PlusCircle className="h-4 w-4" />
+            Create New
+          </Button>
+        </div>
       </div>
 
       {/* Add Course Modal */}

@@ -17,6 +17,30 @@ const LessonSchema = new mongoose.Schema({
   completed: {
     type: Boolean,
     default: false
+  },
+  fileName: {
+    type: String,
+    default: null
+  },
+  filePath: {
+    type: String,
+    default: null
+  },
+  fileUrl: {
+    type: String,
+    default: null
+  },
+  fileSize: {
+    type: Number,
+    default: null
+  },
+  mimeType: {
+    type: String,
+    default: null
+  },
+  dueDate: {
+    type: String,
+    default: null
   }
 });
 
@@ -41,6 +65,11 @@ const CourseSchema = new mongoose.Schema({
   instructor: {
     type: String,
     required: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   },
   category: {
     type: String,
