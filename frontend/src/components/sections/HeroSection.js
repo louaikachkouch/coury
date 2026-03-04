@@ -35,7 +35,7 @@ const HeroSection = () => {
     <section className="flex flex-col gap-2">
       <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight">
         {getGreeting()}, {firstName}.{' '}
-        <span className="inline-block origin-bottom-right">👋</span>
+        <span className="inline-block origin-bottom-right"></span>
       </h1>
       <p className="text-muted-foreground text-lg">
         {upcomingCount > 0 ? (

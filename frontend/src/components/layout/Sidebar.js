@@ -12,13 +12,13 @@ const Sidebar = () => {
   const collapseTimeoutRef = useRef(null);
   
   const navItems = [
-    { icon: Home, label: 'Home', path: '/' },
+    { icon: Home, label: 'Home', path: '/dashboard' },
     { icon: BookOpen, label: 'Courses', path: '/courses' },
     { icon: Calendar, label: 'Schedule', path: '/schedule' },
   ];
 
   const isActive = (path) => {
-    if (path === '/') return location.pathname === '/';
+    if (path === '/dashboard') return location.pathname === '/dashboard';
     return location.pathname.startsWith(path);
   };
 
@@ -51,7 +51,7 @@ const Sidebar = () => {
       <div className={`h-16 flex items-center border-b border-border/50 overflow-hidden ${isExpanded ? 'px-4' : 'justify-center px-3'}`}
         style={{ transition: 'padding 400ms cubic-bezier(0.4, 0, 0.2, 1)' }}
       >
-        <NavLink to="/" className="flex items-center gap-3">
+        <NavLink to="/dashboard" className="flex items-center gap-3">
           <div className="bg-primary/10 text-primary p-2 rounded-xl flex-shrink-0">
             <BookOpen className="h-5 w-5" />
           </div>

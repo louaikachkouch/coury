@@ -8,7 +8,7 @@ const MobileHeader = () => {
   
   return (
     <header className="h-16 flex items-center justify-between px-4 border-b border-border/50 bg-card md:hidden">
-      <NavLink to="/" className="flex items-center gap-2">
+      <NavLink to="/dashboard" className="flex items-center gap-2">
         <div className="bg-primary/10 text-primary p-1.5 rounded-lg">
           <BookOpen className="h-4 w-4" />
         </div>
@@ -37,14 +37,14 @@ const MobileNav = () => {
   const location = useLocation();
   
   const navItems = [
-    { icon: Home, label: 'Home', path: '/' },
+    { icon: Home, label: 'Home', path: '/dashboard' },
     { icon: BookOpen, label: 'Courses', path: '/courses' },
     { icon: Calendar, label: 'Calendar', path: '/schedule' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
   const isActive = (path) => {
-    if (path === '/') return location.pathname === '/';
+    if (path === '/dashboard') return location.pathname === '/dashboard';
     return location.pathname.startsWith(path);
   };
 

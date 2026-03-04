@@ -22,7 +22,7 @@ const Login = () => {
     
     try {
       await login(email, password, rememberMe);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to sign in. Please try again.');
     } finally {

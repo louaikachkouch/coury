@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import AppLayout from './components/layout/AppLayout';
+import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
@@ -19,6 +20,9 @@ function App() {
       <AuthProvider>
         <Router>
           <Routes>
+            {/* Landing page */}
+            <Route path="/" element={<Landing />} />
+            
             {/* Auth pages without AppLayout */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -27,7 +31,7 @@ function App() {
             <Route path="/*" element={
               <AppLayout>
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/courses" element={<Courses />} />
                   <Route path="/courses/:id" element={<CourseDetail />} />
                   <Route path="/schedule" element={<Schedule />} />
