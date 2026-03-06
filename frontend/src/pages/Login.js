@@ -98,15 +98,6 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Demo Credentials Hint */}
-          <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl mb-6">
-            <p className="text-sm font-medium text-foreground mb-2">Demo Credentials:</p>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p><span className="font-mono bg-muted/50 px-1 rounded">demo@coury.com</span> / <span className="font-mono bg-muted/50 px-1 rounded">demo123</span></p>
-              <p><span className="font-mono bg-muted/50 px-1 rounded">student@coury.com</span> / <span className="font-mono bg-muted/50 px-1 rounded">student123</span></p>
-            </div>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Error Message */}
             {error && (
