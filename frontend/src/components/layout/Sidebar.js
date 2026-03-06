@@ -51,7 +51,7 @@ const Sidebar = () => {
       <div className={`h-16 flex items-center border-b border-border/50 overflow-hidden ${isExpanded ? 'px-4' : 'justify-center px-3'}`}
         style={{ transition: 'padding 400ms cubic-bezier(0.4, 0, 0.2, 1)' }}
       >
-        <NavLink to="/dashboard" className="flex items-center gap-3">
+        <NavLink to="/dashboard" className={`flex items-center ${isExpanded ? 'gap-3' : 'justify-center'}`}>
           <div className="bg-primary/10 text-primary p-2 rounded-xl flex-shrink-0">
             <BookOpen className="h-5 w-5" />
           </div>
@@ -113,52 +113,14 @@ const Sidebar = () => {
       {/* Footer */}
       <div className="p-3 border-t border-border/50">
         <div 
-          className={`flex gap-2 mb-2 ${
-            isExpanded ? 'flex-row items-center' : 'flex-col items-center'
+          className={`flex items-center rounded-xl bg-muted/30 hover:bg-muted/50 overflow-hidden ${
+            isExpanded ? 'gap-2 px-2 py-2' : 'justify-center p-2'
           }`}
           style={{
             transition: 'all 400ms cubic-bezier(0.4, 0, 0.2, 1)'
           }}
         >
-          <NavLink
-            to="/settings"
-            className={`flex items-center justify-center rounded-xl overflow-hidden ${
-              isExpanded ? 'flex-1 gap-3 px-3 py-2.5' : 'w-11 h-11'
-            } ${
-              isActive('/settings')
-                ? 'text-primary bg-primary/10 font-medium'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
-            style={{ transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)' }}
-            title={!isExpanded ? 'Settings' : undefined}
-          >
-            <Settings className="h-5 w-5 flex-shrink-0" />
-            <span 
-              className={`whitespace-nowrap transition-all duration-300 ${
-                isExpanded ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-2 w-0'
-              }`}
-            >
-              Settings
-            </span>
-          </NavLink>
-          <button
-            onClick={toggleDarkMode}
-            className="w-11 h-11 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex-shrink-0"
-            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </button>
-        </div>
-
-        <NavLink to="/settings" className="block mt-2">
-          <div 
-            className={`flex items-center rounded-xl bg-muted/30 hover:bg-muted/50 cursor-pointer overflow-hidden ${
-              isExpanded ? 'gap-3 px-2 py-2' : 'justify-center p-2'
-            }`}
-            style={{
-              transition: 'all 400ms cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-          >
+          <NavLink to="/settings" className={`flex items-center ${isExpanded ? 'flex-1 gap-3' : ''}`}>
             <div 
               className="rounded-full bg-primary/20 flex items-center justify-center border border-background shadow-sm overflow-hidden flex-shrink-0 h-9 w-9"
             >
@@ -174,14 +136,25 @@ const Sidebar = () => {
             </div>
             <div 
               className={`flex flex-col transition-all duration-300 ${
-                isExpanded ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-2 w-0'
+                isExpanded ? 'opacity-100 translate-x-0 w-auto' : 'opacity-0 -translate-x-2 w-0 hidden'
               }`}
             >
               <span className="text-sm font-medium leading-none whitespace-nowrap">{user?.name || 'Guest'}</span>
               <span className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">{user?.major || 'Student'}</span>
             </div>
-          </div>
-        </NavLink>
+          </NavLink>
+          
+          {isExpanded && (
+            <NavLink
+              to="/settings"
+              className="flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 flex-shrink-0 h-8 w-8"
+              title="Settings"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Settings className="h-4 w-4" />
+            </NavLink>
+          )}
+        </div>
       </div>
     </aside>
   );

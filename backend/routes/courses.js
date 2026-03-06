@@ -34,6 +34,12 @@ router.post('/', protect, async (req, res) => {
       totalLessons
     });
 
+    // Automatically enroll the creator in the course
+    await Enrollment.create({
+      user: req.user.id,
+      course: course._id
+    });
+
     res.status(201).json({
       success: true,
       course: {
@@ -41,7 +47,7 @@ router.post('/', protect, async (req, res) => {
         code: code || course.category?.substring(0, 3).toUpperCase() + ' 101',
         schedule: schedule || 'Schedule TBA',
         credits: credits || 3,
-        isEnrolled: false,
+        isEnrolled: true,
         progress: 0
       }
     });
@@ -144,7 +150,8 @@ router.get('/:id', protect, async (req, res) => {
         isEnrolled: !!enrollment,
         progress: enrollment?.progress || 0,
         currentModule: enrollment?.currentModule || 0,
-        currentLesson: enrollment?.currentLesson || 0
+        currentLesson: enrollment?.currentLesson || 0,
+        completedLessons: enrollment?.completedLessons || []
       }
     });
   } catch (err) {
@@ -312,16 +319,66 @@ router.post('/:id/content', protect, upload.single('file'), async (req, res) => 
       course.totalLessons = course.modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
     }
     
-    await course.save();
+    // Mark modules as modified so Mongoose saves nested array changes
+    course.markModified('modules');
+    const savedCourse = await course.save();
     
     res.json({
       success: true,
-      course,
+      course: savedCourse,
       uploadedFile: req.file ? {
         fileName: req.file.originalname,
         fileUrl: `/uploads/${req.params.id}/${req.file.filename}`,
         fileSize: req.file.size
       } : null
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   DELETE /api/courses/:id/content/:lessonId
+// @desc    Delete a lesson from a course
+// @access  Private (course creator only)
+router.delete('/:id/content/:lessonId', protect, async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    // Only course creator can delete content
+    if (course.createdBy && course.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to modify this course' });
+    }
+    
+    // Find and remove the lesson from modules
+    let lessonFound = false;
+    course.modules.forEach((mod) => {
+      const lessonIndex = mod.lessons.findIndex(
+        (lesson) => lesson._id.toString() === req.params.lessonId
+      );
+      if (lessonIndex !== -1) {
+        mod.lessons.splice(lessonIndex, 1);
+        lessonFound = true;
+      }
+    });
+    
+    if (!lessonFound) {
+      return res.status(404).json({ message: 'Content not found' });
+    }
+    
+    // Update total lessons count
+    course.totalLessons = course.modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
+    
+    course.markModified('modules');
+    const savedCourse = await course.save();
+    
+    res.json({
+      success: true,
+      course: savedCourse
     });
   } catch (err) {
     console.error(err.message);
@@ -360,6 +417,38 @@ router.put('/:id', protect, async (req, res) => {
     res.json({
       success: true,
       course
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   DELETE /api/courses/:id
+// @desc    Delete a course
+// @access  Private (course creator only)
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    
+    // Only course creator can delete
+    if (course.createdBy && course.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to delete this course' });
+    }
+    
+    // Delete all enrollments for this course
+    await Enrollment.deleteMany({ course: req.params.id });
+    
+    // Delete the course
+    await Course.findByIdAndDelete(req.params.id);
+    
+    res.json({
+      success: true,
+      message: 'Course deleted successfully'
     });
   } catch (err) {
     console.error(err.message);

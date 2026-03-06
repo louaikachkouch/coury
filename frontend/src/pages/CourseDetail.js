@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, ChevronLeft, FileText, Video, Calendar, Users, X, MessageSquare, Download, Upload, Eye, CheckCircle, Play, Plus, Loader2 } from 'lucide-react';
+import { BookOpen, Clock, ChevronLeft, FileText, Video, Calendar, Users, X, MessageSquare, Download, Upload, Eye, CheckCircle, Play, Plus, Loader2, Trash2 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { coursesAPI, healthCheck } from '../services/api';
@@ -12,7 +12,7 @@ const colorPalette = [
   { color: 'bg-[#7EA8BE]/15 text-[#5A8AA0]', solidColor: 'bg-[#7EA8BE]' },
 ];
 
-const ModuleItem = ({ module, onView, onToggle }) => {
+const ModuleItem = ({ module, onView, onToggle, onDelete }) => {
   const getIcon = () => {
     switch (module.type) {
       case 'video': return <Video className="h-4 w-4" />;
@@ -56,6 +56,14 @@ const ModuleItem = ({ module, onView, onToggle }) => {
             onClick={(e) => { e.stopPropagation(); onView(); }}
           >
             <Eye className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 hover:bg-red-50"
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
           <div 
             className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer ${module.completed ? 'bg-primary border-primary text-white' : 'border-border hover:border-primary'}`}
@@ -663,6 +671,49 @@ const DiscussionModal = ({ course, onClose }) => {
   );
 };
 
+// Delete Confirmation Modal
+const DeleteConfirmModal = ({ contentTitle, onConfirm, onCancel, isDeleting }) => {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onCancel}>
+      <Card className="w-full max-w-sm p-6 border-none shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="text-center">
+          <div className="mx-auto w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+            <Trash2 className="h-6 w-6 text-red-600" />
+          </div>
+          <h2 className="text-lg font-bold mb-2">Delete Content</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Are you sure you want to delete <span className="font-medium text-foreground">"{contentTitle}"</span>? This action cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <Button 
+              variant="ghost" 
+              onClick={onCancel} 
+              className="flex-1"
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={onConfirm} 
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
 const CourseDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -673,6 +724,10 @@ const CourseDetail = () => {
   const [showContentModal, setShowContentModal] = useState(false);
   const [selectedModule, setSelectedModule] = useState(null);
   const [showAddContent, setShowAddContent] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ show: false, content: null });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteCourse, setShowDeleteCourse] = useState(false);
+  const [isDeletingCourse, setIsDeletingCourse] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -684,15 +739,47 @@ const CourseDetail = () => {
           const data = await coursesAPI.getById(id);
           // Map API data to display format
           const colorIndex = parseInt(id, 16) % colorPalette.length || 0;
+          
+          // Get completed lesson IDs from enrollment
+          const completedLessonIds = new Set(
+            (data.course.completedLessons || [])
+              .filter(cl => cl.completed)
+              .map(cl => cl.lessonId?.toString() || cl.lessonId)
+          );
+          
+          // Flatten modules -> lessons into a single array for display
+          let flattenedModules = [];
+          if (data.course.modules && Array.isArray(data.course.modules)) {
+            data.course.modules.forEach((mod) => {
+              if (mod.lessons && Array.isArray(mod.lessons)) {
+                flattenedModules = flattenedModules.concat(
+                  mod.lessons.map((lesson, idx) => ({
+                    ...lesson,
+                    id: lesson._id || `${mod._id}-${idx}`,
+                    // Mark as completed if in the completedLessons array
+                    completed: lesson.completed || completedLessonIds.has(lesson._id?.toString() || lesson._id),
+                    // Add full URL for file access
+                    fileUrl: lesson.fileUrl ? `http://localhost:5000${lesson.fileUrl}` : null,
+                  }))
+                );
+              }
+            });
+          }
+          
+          // Fallback to default modules if none exist
+          if (flattenedModules.length === 0) {
+            flattenedModules = [
+              { id: 1, title: 'Course Introduction', completed: false, type: 'video' },
+              { id: 2, title: 'Getting Started', completed: false, type: 'reading' },
+            ];
+          }
+          
           const mappedCourse = {
             ...data.course,
             id: data.course._id,
             code: data.course.category?.substring(0, 3).toUpperCase() + ' 101',
             ...colorPalette[colorIndex],
-            modules: data.course.modules || [
-              { id: 1, title: 'Course Introduction', completed: false, type: 'video' },
-              { id: 2, title: 'Getting Started', completed: false, type: 'reading' },
-            ],
+            modules: flattenedModules,
             announcements: data.course.announcements || [],
             credits: data.course.credits || 3,
             schedule: data.course.schedule || 'See course details',
@@ -726,15 +813,33 @@ const CourseDetail = () => {
         newModule.file // Pass the file for upload
       );
       
-      // If server returned the file URL, update the module with it
-      if (result.uploadedFile?.fileUrl) {
-        newModule.fileUrl = `http://localhost:5000${result.uploadedFile.fileUrl}`;
+      // Flatten the returned course modules into display format
+      if (result.course && result.course.modules) {
+        let flattenedModules = [];
+        result.course.modules.forEach((mod) => {
+          if (mod.lessons && Array.isArray(mod.lessons)) {
+            flattenedModules = flattenedModules.concat(
+              mod.lessons.map((lesson, idx) => ({
+                ...lesson,
+                id: lesson._id || `${mod._id}-${idx}`,
+                fileUrl: lesson.fileUrl ? `http://localhost:5000${lesson.fileUrl}` : null,
+              }))
+            );
+          }
+        });
+        
+        const completedCount = flattenedModules.filter(m => m.completed).length;
+        const progress = flattenedModules.length > 0 
+          ? Math.round((completedCount / flattenedModules.length) * 100) 
+          : 0;
+        setCourse({ ...course, modules: flattenedModules, progress });
+        return;
       }
     } catch (error) {
       console.error('Failed to save content to database:', error);
     }
     
-    // Update local state
+    // Fallback: Update local state only if API failed
     const courseModules = [...(course.modules || []), newModule];
     const completedCount = courseModules.filter(m => m.completed).length;
     const progress = Math.round((completedCount / courseModules.length) * 100);
@@ -748,19 +853,102 @@ const CourseDetail = () => {
 
   const handleMarkModuleComplete = () => {
     if (selectedModule) {
-      toggleModuleCompletion(selectedModule.id);
+      toggleModuleCompletion(selectedModule._id || selectedModule.id);
       setSelectedModule({ ...selectedModule, completed: true });
     }
   };
 
-  const toggleModuleCompletion = (moduleId) => {
+  const toggleModuleCompletion = async (moduleId) => {
     if (!course) return;
+    
     const courseModules = (course.modules || []).map(m => 
-      m.id === moduleId ? { ...m, completed: !m.completed } : m
+      (m._id || m.id) === moduleId ? { ...m, completed: !m.completed } : m
     );
     const completedCount = courseModules.filter(m => m.completed).length;
-    const progress = Math.round((completedCount / courseModules.length) * 100);
+    const progress = courseModules.length > 0 
+      ? Math.round((completedCount / courseModules.length) * 100)
+      : 0;
+    
+    // Update local state immediately for responsiveness
     setCourse({ ...course, modules: courseModules, progress });
+    
+    // Build completedLessons array for the API
+    const completedLessons = courseModules
+      .filter(m => m.completed)
+      .map(m => ({
+        lessonId: m._id || m.id,
+        completed: true,
+        completedAt: new Date()
+      }));
+    
+    // Save progress to backend
+    try {
+      await coursesAPI.updateProgress(course._id || course.id, {
+        progress,
+        completedLessons
+      });
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+    }
+  };
+
+  const deleteContent = async (lessonId) => {
+    if (!course) return;
+    
+    // Find the content to get its title for the modal
+    const contentToDelete = course.modules.find(m => (m._id || m.id) === lessonId);
+    setDeleteModal({ show: true, content: contentToDelete, lessonId });
+  };
+
+  const confirmDelete = async () => {
+    if (!course || !deleteModal.lessonId) return;
+    
+    setIsDeleting(true);
+    try {
+      const result = await coursesAPI.deleteContent(course._id || course.id, deleteModal.lessonId);
+      
+      // Flatten the returned course modules into display format
+      if (result.course && result.course.modules) {
+        let flattenedModules = [];
+        result.course.modules.forEach((mod) => {
+          if (mod.lessons && Array.isArray(mod.lessons)) {
+            flattenedModules = flattenedModules.concat(
+              mod.lessons.map((lesson, idx) => ({
+                ...lesson,
+                id: lesson._id || `${mod._id}-${idx}`,
+                fileUrl: lesson.fileUrl ? `http://localhost:5000${lesson.fileUrl}` : null,
+              }))
+            );
+          }
+        });
+        
+        const completedCount = flattenedModules.filter(m => m.completed).length;
+        const progress = flattenedModules.length > 0 
+          ? Math.round((completedCount / flattenedModules.length) * 100) 
+          : 0;
+        setCourse({ ...course, modules: flattenedModules, progress });
+      }
+      setDeleteModal({ show: false, content: null, lessonId: null });
+    } catch (error) {
+      console.error('Failed to delete content:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const deleteCourse = async () => {
+    if (!course) return;
+    
+    setIsDeletingCourse(true);
+    try {
+      await coursesAPI.delete(course._id || course.id);
+      navigate('/courses');
+    } catch (error) {
+      console.error('Failed to delete course:', error);
+    } finally {
+      setIsDeletingCourse(false);
+      setShowDeleteCourse(false);
+    }
   };
 
   if (isLoading) {
@@ -801,6 +989,14 @@ const CourseDetail = () => {
         <AddContentModal 
           onClose={() => setShowAddContent(false)}
           onAdd={addNewContent}
+        />
+      )}
+      {deleteModal.show && (
+        <DeleteConfirmModal 
+          contentTitle={deleteModal.content?.title || 'this content'}
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteModal({ show: false, content: null, lessonId: null })}
+          isDeleting={isDeleting}
         />
       )}
 
@@ -881,6 +1077,7 @@ const CourseDetail = () => {
                 module={module} 
                 onView={() => openModuleContent(module)}
                 onToggle={() => toggleModuleCompletion(module.id)}
+                onDelete={() => deleteContent(module._id || module.id)}
               />
             ))}
           </div>
@@ -933,10 +1130,59 @@ const CourseDetail = () => {
                 <Calendar className="h-4 w-4" />
                 View Schedule
               </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start gap-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                onClick={() => setShowDeleteCourse(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Course
+              </Button>
             </div>
           </Card>
         </div>
       </div>
+
+      {/* Delete Course Modal */}
+      {showDeleteCourse && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDeleteCourse(false)}>
+          <Card className="w-full max-w-sm p-6 border-none shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="mx-auto w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <h2 className="text-lg font-bold mb-2">Delete Course</h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                Are you sure you want to delete <span className="font-medium text-foreground">"{course.title}"</span>? This will permanently remove all content and enrollments. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowDeleteCourse(false)} 
+                  className="flex-1"
+                  disabled={isDeletingCourse}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={deleteCourse} 
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  disabled={isDeletingCourse}
+                >
+                  {isDeletingCourse ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Course'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

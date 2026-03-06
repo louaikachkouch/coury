@@ -318,8 +318,8 @@ const Courses = () => {
         _id: data.course._id,
         code: newCourse.code,
         ...courseColors[colorIndex],
-        isEnrolled: false,
-        progress: 0,
+        isEnrolled: data.course.isEnrolled ?? true,
+        progress: data.course.progress ?? 0,
         nextDue: 'No upcoming assignments'
       }, ...courses]);
     } catch (error) {
