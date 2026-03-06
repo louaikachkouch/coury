@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 
 const Landing = () => {
   const { theme, toggleTheme } = useTheme();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -11,25 +12,13 @@ const Landing = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Coury" className="h-10 w-10 rounded-xl" />
-              <span className="text-2xl font-bold text-foreground">Coury</span>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <img src="/cover.png" alt="Coury" className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl" />
+              <span className="text-xl sm:text-2xl font-bold text-foreground">Coury</span>
             </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground transition-colors"
-              >
-                {theme === 'dark' ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                )}
-              </button>
+            
+            {/* Desktop Navigation */}
+            <div className="hidden sm:flex items-center gap-4">
               <Link
                 to="/login"
                 className="px-4 py-2 text-foreground hover:text-primary transition-colors font-medium"
@@ -43,64 +32,104 @@ const Landing = () => {
                 Get Started
               </Link>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="flex sm:hidden items-center gap-2">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground transition-colors"
+              >
+                {mobileMenuOpen ? (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="sm:hidden py-4 border-t border-border/50">
+              <div className="flex flex-col gap-3">
+                <Link
+                  to="/login"
+                  className="px-4 py-3 text-foreground hover:bg-muted rounded-xl transition-colors font-medium text-center"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-opacity text-center"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Get Started
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      <section className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div className="space-y-6 sm:space-y-8 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full text-primary text-xs sm:text-sm font-medium">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
                 Your Learning Journey Starts Here
               </div>
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-foreground leading-tight">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground leading-tight">
                 Learn Smarter,{' '}
                 <span className="text-primary">Achieve More</span>
               </h1>
-              <p className="text-xl text-muted-foreground max-w-lg">
+              <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg mx-auto lg:mx-0">
                 Coury is your all-in-one platform for managing courses, tracking progress, and staying organized throughout your academic journey.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
                 <Link
                   to="/register"
-                  className="px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-semibold text-lg hover:opacity-90 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-0.5 text-center"
+                  className="px-6 sm:px-8 py-3 sm:py-4 bg-primary text-primary-foreground rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg hover:opacity-90 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-0.5 text-center"
                 >
                   Start Learning Free
                 </Link>
                 <Link
                   to="/login"
-                  className="px-8 py-4 bg-card border border-border text-foreground rounded-2xl font-semibold text-lg hover:bg-muted transition-all text-center"
+                  className="px-6 sm:px-8 py-3 sm:py-4 bg-card border border-border text-foreground rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg hover:bg-muted transition-all text-center"
                 >
                   Sign In
                 </Link>
               </div>
-              <div className="flex items-center gap-6 pt-4">
-                <div className="flex -space-x-3">
+              <div className="flex items-center gap-4 sm:gap-6 pt-2 sm:pt-4 justify-center lg:justify-start">
+                <div className="flex -space-x-2 sm:-space-x-3">
                   {[1, 2, 3, 4].map((i) => (
                     <img
                       key={i}
                       src={`https://i.pravatar.cc/40?img=${i + 10}`}
                       alt=""
-                      className="w-10 h-10 rounded-full border-2 border-background"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-background"
                     />
                   ))}
                 </div>
-                <p className="text-muted-foreground">
+                <p className="text-sm sm:text-base text-muted-foreground">
                   <span className="text-foreground font-semibold">2,000+</span> students already learning
                 </p>
               </div>
             </div>
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-3xl blur-3xl" />
+            <div className="relative mt-8 lg:mt-0">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl sm:rounded-3xl blur-3xl" />
               <img
                 src="/cover.png"
                 alt="Coury Dashboard"
-                className="relative rounded-3xl shadow-2xl border border-border/50"
+                className="relative rounded-2xl sm:rounded-3xl shadow-2xl border border-border/50 w-full"
               />
             </div>
           </div>
@@ -108,17 +137,17 @@ const Landing = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4">
+          <div className="text-center mb-10 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
               Everything You Need to Succeed
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
               Powerful features designed to help you stay on top of your studies
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {[
               {
                 icon: (
@@ -177,15 +206,15 @@ const Landing = () => {
             ].map((feature, index) => (
               <div
                 key={index}
-                className="p-8 bg-card rounded-2xl border border-border/50 hover:border-primary/30 transition-all hover:shadow-xl group"
+                className="p-4 sm:p-6 lg:p-8 bg-card rounded-xl sm:rounded-2xl border border-border/50 hover:border-primary/30 transition-all hover:shadow-xl group"
               >
-                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center text-primary mb-4 sm:mb-6 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">
+                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
                   {feature.title}
                 </h3>
-                <p className="text-muted-foreground">
+                <p className="text-sm sm:text-base text-muted-foreground">
                   {feature.description}
                 </p>
               </div>
@@ -195,18 +224,18 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="p-12 bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 rounded-3xl border border-primary/20">
-            <h2 className="text-4xl font-bold text-foreground mb-4">
+          <div className="p-6 sm:p-8 lg:p-12 bg-gradient-to-br from-primary/10 via-accent/5 to-primary/10 rounded-2xl sm:rounded-3xl border border-primary/20">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
               Ready to Transform Your Learning?
             </h2>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto">
               Join thousands of students who are already using Coury to achieve their academic goals.
             </p>
             <Link
               to="/register"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-semibold text-lg hover:opacity-90 transition-all shadow-xl"
+              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-primary text-primary-foreground rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg hover:opacity-90 transition-all shadow-xl"
             >
               Get Started for Free
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,24 +247,24 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-border/50">
+      <footer className="py-8 sm:py-12 px-4 sm:px-6 lg:px-8 border-t border-border/50">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Coury" className="h-8 w-8 rounded-lg" />
-              <span className="text-xl font-bold text-foreground">Coury</span>
+              <img src="/cover.png" alt="Coury" className="h-8 w-8 rounded-lg" />
+              <span className="text-lg sm:text-xl font-bold text-foreground">Coury</span>
             </div>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-xs sm:text-sm text-center">
               © 2026 Coury. All rights reserved.
             </p>
-            <div className="flex items-center gap-6">
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+            <div className="flex items-center gap-4 sm:gap-6">
+              <a href="#" className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors">
                 Privacy
               </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="#" className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors">
                 Terms
               </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="#" className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </a>
             </div>
