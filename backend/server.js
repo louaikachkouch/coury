@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
-const connectDB = require('./config/db');
+const { connectDB } = require('./config/db');
 
 // Load env vars
 dotenv.config();
@@ -28,7 +28,8 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Serve uploaded files
+// Serve uploaded files (legacy compatibility)
+// This serves any existing local files for backward compatibility
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes

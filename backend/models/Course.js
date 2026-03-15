@@ -22,6 +22,10 @@ const LessonSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  fileId: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null
+  },
   filePath: {
     type: String,
     default: null

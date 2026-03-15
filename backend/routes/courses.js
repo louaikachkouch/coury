@@ -1,9 +1,35 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const { protect } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const { getGridFSBucket } = require('../config/db');
+
+const isUserAllowedForCourse = async (course, userId) => {
+  if (course.createdBy && course.createdBy.toString() === userId) {
+    return true;
+  }
+
+  const enrollment = await Enrollment.findOne({ user: userId, course: course._id });
+  return Boolean(enrollment);
+};
+
+const uploadBufferToGridFS = (file, metadata = {}) => {
+  const bucket = getGridFSBucket();
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = bucket.openUploadStream(file.originalname, {
+      contentType: file.mimetype,
+      metadata
+    });
+
+    uploadStream.on('error', reject);
+    uploadStream.on('finish', resolve);
+    uploadStream.end(file.buffer);
+  });
+};
 
 // @route   POST /api/courses
 // @desc    Create a new course (visible only to creator)
@@ -131,9 +157,8 @@ router.get('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
     
-    // Check if user has permission to view this course
-    // Course must be public (no createdBy) or created by the current user
-    if (course.createdBy && course.createdBy.toString() !== req.user.id) {
+    const canAccess = await isUserAllowedForCourse(course, req.user.id);
+    if (!canAccess) {
       return res.status(403).json({ message: 'Not authorized to view this course' });
     }
     
@@ -294,11 +319,17 @@ router.post('/:id/content', protect, upload.single('file'), async (req, res) => 
       dueDate: type === 'assignment' ? due : null
     };
     
-    // Add file info if file was uploaded
+    // Add file info if file was uploaded (stored in GridFS)
     if (req.file) {
+      const uploaded = await uploadBufferToGridFS(req.file, {
+        uploadedBy: req.user.id,
+        courseId: req.params.id
+      });
+
       lessonData.fileName = req.file.originalname;
-      lessonData.filePath = req.file.path;
-      lessonData.fileUrl = `/uploads/${req.params.id}/${req.file.filename}`;
+      lessonData.fileId = uploaded._id;
+      lessonData.filePath = `gridfs://${uploaded._id}`;
+      lessonData.fileUrl = `/api/courses/files/${uploaded._id}`;
       lessonData.fileSize = req.file.size;
       lessonData.mimeType = req.file.mimetype;
     }
@@ -328,7 +359,7 @@ router.post('/:id/content', protect, upload.single('file'), async (req, res) => 
       course: savedCourse,
       uploadedFile: req.file ? {
         fileName: req.file.originalname,
-        fileUrl: `/uploads/${req.params.id}/${req.file.filename}`,
+        fileUrl: savedCourse.modules[0]?.lessons?.slice(-1)[0]?.fileUrl || null,
         fileSize: req.file.size
       } : null
     });
@@ -356,11 +387,13 @@ router.delete('/:id/content/:lessonId', protect, async (req, res) => {
     
     // Find and remove the lesson from modules
     let lessonFound = false;
+    let fileIdToDelete = null;
     course.modules.forEach((mod) => {
       const lessonIndex = mod.lessons.findIndex(
         (lesson) => lesson._id.toString() === req.params.lessonId
       );
       if (lessonIndex !== -1) {
+        fileIdToDelete = mod.lessons[lessonIndex].fileId || null;
         mod.lessons.splice(lessonIndex, 1);
         lessonFound = true;
       }
@@ -372,6 +405,15 @@ router.delete('/:id/content/:lessonId', protect, async (req, res) => {
     
     // Update total lessons count
     course.totalLessons = course.modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
+
+    if (fileIdToDelete) {
+      const bucket = getGridFSBucket();
+      try {
+        await bucket.delete(new mongoose.Types.ObjectId(fileIdToDelete));
+      } catch (error) {
+        // Ignore missing files so lesson deletion can still complete.
+      }
+    }
     
     course.markModified('modules');
     const savedCourse = await course.save();
@@ -440,6 +482,26 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this course' });
     }
     
+    const fileIds = [];
+    course.modules.forEach((mod) => {
+      mod.lessons.forEach((lesson) => {
+        if (lesson.fileId) {
+          fileIds.push(lesson.fileId);
+        }
+      });
+    });
+
+    if (fileIds.length > 0) {
+      const bucket = getGridFSBucket();
+      for (const fileId of fileIds) {
+        try {
+          await bucket.delete(new mongoose.Types.ObjectId(fileId));
+        } catch (error) {
+          // Skip orphan cleanup failures so course deletion still succeeds.
+        }
+      }
+    }
+
     // Delete all enrollments for this course
     await Enrollment.deleteMany({ course: req.params.id });
     
@@ -450,6 +512,49 @@ router.delete('/:id', protect, async (req, res) => {
       success: true,
       message: 'Course deleted successfully'
     });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/courses/files/:fileId
+// @desc    Stream a PDF file from GridFS if user has course access
+// @access  Private
+router.get('/files/:fileId', protect, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.fileId)) {
+      return res.status(400).json({ message: 'Invalid file id' });
+    }
+
+    const fileId = new mongoose.Types.ObjectId(req.params.fileId);
+    const course = await Course.findOne({ 'modules.lessons.fileId': fileId });
+
+    if (!course) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    const canAccess = await isUserAllowedForCourse(course, req.user.id);
+    if (!canAccess) {
+      return res.status(403).json({ message: 'Not authorized to view this file' });
+    }
+
+    const bucket = getGridFSBucket();
+    const files = await bucket.find({ _id: fileId }).toArray();
+
+    if (!files || files.length === 0) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    const file = files[0];
+    res.set('Content-Type', file.contentType || 'application/pdf');
+    res.set('Content-Disposition', `inline; filename="${file.filename}"`);
+
+    const downloadStream = bucket.openDownloadStream(fileId);
+    downloadStream.on('error', () => {
+      res.status(404).json({ message: 'File not found' });
+    });
+    downloadStream.pipe(res);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });

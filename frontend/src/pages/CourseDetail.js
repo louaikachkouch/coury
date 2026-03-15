@@ -12,6 +12,28 @@ const colorPalette = [
   { color: 'bg-[#7EA8BE]/15 text-[#5A8AA0]', solidColor: 'bg-[#7EA8BE]' },
 ];
 
+const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+
+const buildAuthenticatedFileUrl = (relativePathOrUrl) => {
+  if (!relativePathOrUrl) return null;
+
+  if (relativePathOrUrl.startsWith('blob:')) {
+    return relativePathOrUrl;
+  }
+
+  const token = localStorage.getItem('token');
+  const absoluteUrl = relativePathOrUrl.startsWith('http')
+    ? relativePathOrUrl
+    : `${API_BASE_URL}${relativePathOrUrl}`;
+
+  if (!token) {
+    return absoluteUrl;
+  }
+
+  const separator = absoluteUrl.includes('?') ? '&' : '?';
+  return `${absoluteUrl}${separator}token=${encodeURIComponent(token)}`;
+};
+
 const ModuleItem = ({ module, onView, onToggle, onDelete }) => {
   const getIcon = () => {
     switch (module.type) {
@@ -482,7 +504,7 @@ const AddContentModal = ({ onClose, onAdd }) => {
             <div className="border-2 border-dashed border-border rounded-xl p-4 text-center hover:border-primary/50 transition-colors">
               <input
                 type="file"
-                accept=".pdf,.doc,.docx,.mp4,.mov,.ppt,.pptx"
+                accept=".pdf,application/pdf"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="content-file-upload"
@@ -497,7 +519,7 @@ const AddContentModal = ({ onClose, onAdd }) => {
                   <>
                     <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm font-medium">Click to upload file</p>
-                    <p className="text-xs text-muted-foreground mt-1">PDF, DOC, MP4, PPT (max 50MB)</p>
+                    <p className="text-xs text-muted-foreground mt-1">PDF only (max 15MB)</p>
                   </>
                 )}
               </label>
@@ -758,8 +780,8 @@ const CourseDetail = () => {
                     id: lesson._id || `${mod._id}-${idx}`,
                     // Mark as completed if in the completedLessons array
                     completed: lesson.completed || completedLessonIds.has(lesson._id?.toString() || lesson._id),
-                    // Add full URL for file access
-                    fileUrl: lesson.fileUrl ? `http://localhost:5000${lesson.fileUrl}` : null,
+                    // Build an authenticated file URL for protected GridFS streaming.
+                    fileUrl: buildAuthenticatedFileUrl(lesson.fileUrl),
                   }))
                 );
               }
@@ -822,7 +844,7 @@ const CourseDetail = () => {
               mod.lessons.map((lesson, idx) => ({
                 ...lesson,
                 id: lesson._id || `${mod._id}-${idx}`,
-                fileUrl: lesson.fileUrl ? `http://localhost:5000${lesson.fileUrl}` : null,
+                fileUrl: buildAuthenticatedFileUrl(lesson.fileUrl),
               }))
             );
           }
@@ -916,7 +938,7 @@ const CourseDetail = () => {
               mod.lessons.map((lesson, idx) => ({
                 ...lesson,
                 id: lesson._id || `${mod._id}-${idx}`,
-                fileUrl: lesson.fileUrl ? `http://localhost:5000${lesson.fileUrl}` : null,
+                fileUrl: buildAuthenticatedFileUrl(lesson.fileUrl),
               }))
             );
           }
