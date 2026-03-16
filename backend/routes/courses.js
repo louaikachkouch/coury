@@ -26,7 +26,13 @@ const uploadBufferToGridFS = (file, metadata = {}) => {
     });
 
     uploadStream.on('error', reject);
-    uploadStream.on('finish', resolve);
+    uploadStream.on('finish', () => {
+      resolve({
+        _id: uploadStream.id,
+        filename: uploadStream.filename,
+        contentType: file.mimetype
+      });
+    });
     uploadStream.end(file.buffer);
   });
 };
