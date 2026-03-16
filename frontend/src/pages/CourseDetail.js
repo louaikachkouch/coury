@@ -129,69 +129,73 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
   if (isPdfWithFile) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }} onClick={onClose}>
-        {/* Cozy Header with warm accents */}
+        {/* Responsive Header with warm accents */}
         <div 
-          className="flex items-center justify-between px-8 py-4 backdrop-blur-md"
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 md:px-8 py-3 sm:py-4 backdrop-blur-md overflow-auto"
           style={{ background: 'rgba(255, 255, 255, 0.05)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 rounded-xl" style={{ background: 'linear-gradient(135deg, #e08e79 0%, #c96951 100%)' }}>
-              <BookOpen className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 min-w-0">
+            <div className="p-1.5 sm:p-2 md:p-2.5 rounded-lg sm:rounded-xl flex-shrink-0" style={{ background: 'linear-gradient(135deg, #e08e79 0%, #c96951 100%)' }}>
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
-            <div>
-              <h2 className="font-semibold text-white text-lg">{module.title}</h2>
+            <div className="min-w-0">
+              <h2 className="font-semibold text-white text-sm sm:text-base md:text-lg truncate">{module.title}</h2>
               {module.fileName && (
-                <p className="text-sm text-white/50 mt-0.5">{module.fileName}</p>
+                <p className="text-xs sm:text-sm text-white/50 mt-0.5 truncate">{module.fileName}</p>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-wrap justify-end sm:flex-nowrap flex-shrink-0">
             {!module.completed && (
               <button 
                 onClick={onMarkComplete}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                className="hidden sm:flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap"
                 style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'rgba(255, 255, 255, 0.9)' }}
                 onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.15)'}
                 onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
               >
-                <CheckCircle className="h-4 w-4" />
-                Mark Complete
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden md:inline">Mark Complete</span>
+                <span className="md:hidden">Complete</span>
               </button>
             )}
             {module.completed && (
-              <span className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium" style={{ background: 'rgba(136, 176, 136, 0.2)', color: '#88B088' }}>
-                <CheckCircle className="h-4 w-4" />
-                Completed
+              <span className="hidden sm:flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap" style={{ background: 'rgba(136, 176, 136, 0.2)', color: '#88B088' }}>
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden md:inline">Completed</span>
+                <span className="md:hidden">Done</span>
               </span>
             )}
-            <a href={module.fileUrl} download={module.fileName || 'document.pdf'}>
+            <a href={module.fileUrl} download={module.fileName || 'document.pdf'} className="flex-shrink-0">
               <button 
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all"
                 style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'rgba(255, 255, 255, 0.9)' }}
                 onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.15)'}
                 onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
+                title="Download PDF"
               >
-                <Download className="h-4 w-4" />
-                Download
+                <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Download</span>
               </button>
             </a>
             <button 
               onClick={onClose}
-              className="p-2.5 rounded-xl transition-all"
+              className="p-1.5 sm:p-2 md:p-2.5 rounded-lg sm:rounded-xl transition-all flex-shrink-0"
               style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'rgba(255, 255, 255, 0.9)' }}
               onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.15)'}
               onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
+              title="Close"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
         </div>
         
-        {/* PDF Viewer with cozy frame */}
-        <div className="flex-1 p-6" onClick={(e) => e.stopPropagation()}>
+        {/* Responsive PDF Viewer with cozy frame */}
+        <div className="flex-1 p-2 sm:p-4 md:p-6 overflow-hidden" onClick={(e) => e.stopPropagation()}>
           <div 
-            className="w-full h-full rounded-2xl overflow-hidden"
+            className="w-full h-full rounded-xl sm:rounded-2xl overflow-hidden"
             style={{ 
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)',
             }}
@@ -205,9 +209,9 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
           </div>
         </div>
 
-        {/* Subtle ambient glow */}
+        {/* Subtle ambient glow - hidden on mobile */}
         <div 
-          className="fixed top-0 left-1/4 w-1/2 h-32 opacity-30 pointer-events-none"
+          className="hidden md:block fixed top-0 left-1/4 w-1/2 h-32 opacity-30 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse at center, rgba(224, 142, 121, 0.3) 0%, transparent 70%)' }}
         />
       </div>
@@ -215,89 +219,89 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <Card className="w-full max-w-4xl border-none shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="p-4 border-b border-border/30 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${course.color}`}>
-              {module.type === 'video' ? <Video className="h-5 w-5" /> : 
-               module.type === 'assignment' ? <FileText className="h-5 w-5" /> : 
-               <BookOpen className="h-5 w-5" />}
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4" onClick={onClose}>
+      <Card className="w-full max-w-sm sm:max-w-2xl md:max-w-4xl border-none shadow-xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        {/* Responsive Header */}
+        <div className="p-3 sm:p-4 md:p-6 border-b border-border/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className={`p-2 rounded-lg flex-shrink-0 ${course.color}`}>
+              {module.type === 'video' ? <Video className="h-4 w-4 sm:h-5 sm:w-5" /> : 
+               module.type === 'assignment' ? <FileText className="h-4 w-4 sm:h-5 sm:w-5" /> : 
+               <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />}
             </div>
-            <div>
-              <h2 className="text-lg font-bold">{module.title}</h2>
-              <p className="text-sm text-muted-foreground">{course.code} • {course.title}</p>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold truncate">{module.title}</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{course.code} • {course.title}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
-            <X className="h-5 w-5" />
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full flex-shrink-0">
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6">
+        {/* Responsive Content Area */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
           {module.type === 'video' ? (
-            // Video Content
-            <div className="space-y-4">
-              <div className="aspect-video bg-muted rounded-xl flex items-center justify-center relative overflow-hidden">
+            // Responsive Video Content
+            <div className="space-y-3 sm:space-y-4">
+              <div className="aspect-video bg-muted rounded-lg sm:rounded-xl flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
-                <div className="relative z-10 text-center">
-                  <div className="bg-primary text-primary-foreground rounded-full p-4 mx-auto mb-4 w-fit cursor-pointer hover:scale-110 transition-transform">
-                    <Play className="h-8 w-8" />
+                <div className="relative z-10 text-center px-4">
+                  <div className="bg-primary text-primary-foreground rounded-full p-3 sm:p-4 mx-auto mb-3 sm:mb-4 w-fit cursor-pointer hover:scale-110 transition-transform">
+                    <Play className="h-6 w-6 sm:h-8 sm:w-8" />
                   </div>
-                  <p className="text-muted-foreground">Click to play video lecture</p>
-                  <p className="text-sm text-muted-foreground mt-1">Duration: 45 minutes</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Click to play video lecture</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Duration: 45 minutes</p>
                 </div>
               </div>
-              <div className="p-4 bg-muted/30 rounded-xl">
-                <h3 className="font-semibold mb-2">Lecture Notes</h3>
-                <p className="text-sm text-muted-foreground">
+              <div className="p-3 sm:p-4 bg-muted/30 rounded-lg sm:rounded-xl">
+                <h3 className="font-semibold text-sm sm:text-base mb-2">Lecture Notes</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   This lecture covers the key concepts of {module.title.toLowerCase()}. Make sure to take notes and complete the practice exercises at the end.
                 </p>
               </div>
             </div>
           ) : module.type === 'assignment' ? (
-            // Assignment Content
-            <div className="space-y-6">
-              <div className="p-4 bg-muted/30 rounded-xl">
-                <h3 className="font-semibold mb-2">Assignment Instructions</h3>
-                <p className="text-sm text-muted-foreground mb-4">
+            // Responsive Assignment Content
+            <div className="space-y-4 sm:space-y-6">
+              <div className="p-3 sm:p-4 bg-muted/30 rounded-lg sm:rounded-xl">
+                <h3 className="font-semibold text-sm sm:text-base mb-2">Assignment Instructions</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                   Complete the following assignment and submit your work as a PDF file. Make sure to follow the rubric guidelines provided below.
                 </p>
-                <div className="flex items-center gap-2 text-sm text-accent font-medium">
-                  <Clock className="h-4 w-4" />
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-accent font-medium">
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span>Due: {module.due || 'No deadline'}</span>
                 </div>
               </div>
 
-              {/* PDF Preview Area */}
-              <div className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center">
-                <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold mb-2">Assignment Document</h3>
-                <p className="text-sm text-muted-foreground mb-4">{module.title}.pdf</p>
-                <Button variant="ghost" className="gap-2">
-                  <Download className="h-4 w-4" />
+              {/* Responsive PDF Preview Area */}
+              <div className="border-2 border-dashed border-border/50 rounded-lg sm:rounded-xl p-4 sm:p-8 text-center">
+                <FileText className="h-12 w-12 sm:h-16 sm:w-16 mx-auto text-muted-foreground mb-3 sm:mb-4" />
+                <h3 className="font-semibold text-sm sm:text-base mb-2">Assignment Document</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 break-words">{module.title}.pdf</p>
+                <Button variant="ghost" className="gap-2 text-xs sm:text-sm">
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
                   Download Assignment PDF
                 </Button>
               </div>
 
-              {/* Submission Area */}
-              <div className="p-4 bg-primary/5 rounded-xl border border-primary/20">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <Upload className="h-5 w-5" />
+              {/* Responsive Submission Area */}
+              <div className="p-3 sm:p-4 bg-primary/5 rounded-lg sm:rounded-xl border border-primary/20">
+                <h3 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4 flex items-center gap-2">
+                  <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
                   Submit Your Work
                 </h3>
                 
                 {submitted ? (
-                  <div className="text-center py-4">
-                    <CheckCircle className="h-12 w-12 mx-auto text-primary mb-3" />
-                    <p className="font-semibold text-primary">Assignment Submitted!</p>
-                    <p className="text-sm text-muted-foreground mt-1">Your work has been submitted successfully.</p>
+                  <div className="text-center py-3 sm:py-4">
+                    <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-primary mb-2 sm:mb-3" />
+                    <p className="font-semibold text-xs sm:text-sm text-primary">Assignment Submitted!</p>
+                    <p className="text-xs text-muted-foreground mt-1">Your work has been submitted successfully.</p>
                   </div>
                 ) : (
                   <>
-                    <div className="border-2 border-dashed border-border rounded-xl p-6 text-center mb-4">
+                    <div className="border-2 border-dashed border-border rounded-lg sm:rounded-xl p-4 sm:p-6 text-center mb-3 sm:mb-4">
                       <input
                         type="file"
                         accept=".pdf,.doc,.docx"
@@ -305,20 +309,20 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
                         className="hidden"
                         id="file-upload"
                       />
-                      <label htmlFor="file-upload" className="cursor-pointer">
-                        <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <label htmlFor="file-upload" className="cursor-pointer block">
+                        <Upload className="h-6 w-6 sm:h-8 sm:w-8 mx-auto text-muted-foreground mb-2" />
                         {selectedFile ? (
-                          <p className="text-sm font-medium text-primary">{selectedFile.name}</p>
+                          <p className="text-xs sm:text-sm font-medium text-primary truncate">{selectedFile.name}</p>
                         ) : (
                           <>
-                            <p className="text-sm font-medium">Click to upload or drag and drop</p>
+                            <p className="text-xs sm:text-sm font-medium">Click to upload or drag and drop</p>
                             <p className="text-xs text-muted-foreground mt-1">PDF, DOC, DOCX (max 10MB)</p>
                           </>
                         )}
                       </label>
                     </div>
                     <Button 
-                      className="w-full gap-2" 
+                      className="w-full gap-2 text-xs sm:text-sm" 
                       onClick={handleSubmit}
                       disabled={!selectedFile || isSubmitting}
                     >
@@ -326,7 +330,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
                         <>Submitting...</>
                       ) : (
                         <>
-                          <Upload className="h-4 w-4" />
+                          <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
                           Submit Assignment
                         </>
                       )}
@@ -336,73 +340,73 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
               </div>
             </div>
           ) : (
-            // Reading Content (PDF) - Mock for modules without uploaded file
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl shadow-inner border border-border/50 p-8 min-h-[400px]">
-                <div className="max-w-2xl mx-auto space-y-6">
-                  <div className="text-center border-b pb-6">
-                    <h1 className="text-2xl font-bold text-gray-900">{module.title}</h1>
-                    <p className="text-gray-600 mt-2">{course.code} - {course.title}</p>
-                    <p className="text-sm text-gray-500 mt-1">By {course.instructor}</p>
+            // Responsive Reading Content (PDF) - Mock for modules without uploaded file
+            <div className="space-y-3 sm:space-y-4">
+              <div className="bg-white rounded-lg sm:rounded-xl shadow-inner border border-border/50 p-4 sm:p-8 min-h-[300px] sm:min-h-[400px]">
+                <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
+                  <div className="text-center border-b pb-4 sm:pb-6">
+                    <h1 className="text-lg sm:text-2xl font-bold text-gray-900">{module.title}</h1>
+                    <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">{course.code} - {course.title}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">By {course.instructor}</p>
                   </div>
                   
-                  <div className="space-y-4 text-gray-700">
-                    <h2 className="text-lg font-semibold">Introduction</h2>
-                    <p className="text-sm leading-relaxed">
+                  <div className="space-y-3 sm:space-y-4 text-gray-700">
+                    <h2 className="text-base sm:text-lg font-semibold">Introduction</h2>
+                    <p className="text-xs sm:text-sm leading-relaxed">
                       This chapter covers the fundamental concepts of {module.title.toLowerCase()}. Understanding these principles is essential for your progress in this course.
                     </p>
-                    <p className="text-sm leading-relaxed">
+                    <p className="text-xs sm:text-sm leading-relaxed">
                       Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
                     </p>
                     
-                    <h2 className="text-lg font-semibold mt-6">Key Concepts</h2>
-                    <ul className="list-disc list-inside text-sm space-y-2">
+                    <h2 className="text-base sm:text-lg font-semibold mt-4 sm:mt-6">Key Concepts</h2>
+                    <ul className="list-disc list-inside text-xs sm:text-sm space-y-1 sm:space-y-2">
                       <li>Understanding the fundamental principles</li>
                       <li>Applying theoretical knowledge to practice</li>
                       <li>Analyzing case studies and examples</li>
                       <li>Developing critical thinking skills</li>
                     </ul>
                     
-                    <p className="text-sm leading-relaxed mt-4">
+                    <p className="text-xs sm:text-sm leading-relaxed mt-3 sm:mt-4">
                       Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.
                     </p>
                   </div>
                   
-                  <div className="text-center text-sm text-gray-400 pt-6 border-t">
+                  <div className="text-center text-xs sm:text-sm text-gray-400 pt-4 sm:pt-6 border-t">
                     Page 1 of 12
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <Button variant="ghost" className="gap-2">
-                  <Download className="h-4 w-4" />
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+                <Button variant="ghost" className="gap-2 text-xs sm:text-sm">
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
                   Download PDF
                 </Button>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="sm">Previous</Button>
-                  <Button variant="ghost" size="sm">Next</Button>
+                <div className="flex gap-1 sm:gap-2">
+                  <Button variant="ghost" size="sm" className="text-xs">Previous</Button>
+                  <Button variant="ghost" size="sm" className="text-xs">Next</Button>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-border/30 flex items-center justify-between">
+        {/* Responsive Footer */}
+        <div className="p-3 sm:p-4 md:p-6 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             {module.completed ? (
-              <span className="text-sm text-primary font-medium flex items-center gap-1">
-                <CheckCircle className="h-4 w-4" />
+              <span className="text-xs sm:text-sm text-primary font-medium flex items-center gap-1">
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
                 Completed
               </span>
             ) : (
-              <Button variant="ghost" size="sm" onClick={onMarkComplete}>
+              <Button variant="ghost" size="sm" onClick={onMarkComplete} className="text-xs sm:text-sm">
                 Mark as Complete
               </Button>
             )}
           </div>
-          <Button variant="ghost" onClick={onClose}>Close</Button>
+          <Button variant="ghost" onClick={onClose} className="text-xs sm:text-sm">Close</Button>
         </div>
       </Card>
     </div>
