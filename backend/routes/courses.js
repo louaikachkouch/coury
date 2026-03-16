@@ -233,7 +233,7 @@ router.post('/:id/enroll', protect, async (req, res) => {
 });
 
 // @route   PUT /api/courses/:id/progress
-// @desc    Update course progress
+// @desc    Update course progress with auto-calculation and persistent timestamps
 // @access  Private
 router.put('/:id/progress', protect, async (req, res) => {
   try {
@@ -252,21 +252,56 @@ router.put('/:id/progress', protect, async (req, res) => {
     if (progress !== undefined) enrollment.progress = progress;
     if (currentModule !== undefined) enrollment.currentModule = currentModule;
     if (currentLesson !== undefined) enrollment.currentLesson = currentLesson;
-    if (completedLessons) enrollment.completedLessons = completedLessons;
     
+    // Update completed lessons with timestamps
+    if (completedLessons) {
+      enrollment.completedLessons = completedLessons.map((lesson) => {
+        const existing = enrollment.completedLessons.find(
+          cl => cl.lessonId?.toString() === lesson.lessonId?.toString()
+        );
+        return {
+          lessonId: lesson.lessonId,
+          completed: lesson.completed,
+          completedAt: existing?.completedAt || (lesson.completed ? new Date() : null)
+        };
+      });
+    }
+    
+    // Fetch course to calculate total lessons for accurate progress percentage
+    const course = await Course.findById(req.params.id);
+    if (course && course.modules && course.modules.length > 0) {
+      const totalLessons = course.modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
+      const completedCount = (enrollment.completedLessons || []).filter(cl => cl.completed).length;
+      const calculatedProgress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+      enrollment.progress = calculatedProgress;
+    }
+    
+    // Update timestamp
     enrollment.lastAccessedAt = Date.now();
     
-    if (progress >= 100) {
+    // Update status based on progress
+    if (enrollment.progress >= 100) {
       enrollment.status = 'completed';
-    } else if (progress > 0) {
+    } else if (enrollment.progress > 0) {
       enrollment.status = 'in-progress';
+    } else {
+      enrollment.status = 'enrolled';
     }
     
     await enrollment.save();
     
     res.json({
       success: true,
-      enrollment
+      enrollment,
+      course: course ? {
+        _id: course._id,
+        title: course.title,
+        progress: enrollment.progress,
+        status: enrollment.status,
+        totalLessons: course.modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0),
+        completedLessons: enrollment.completedLessons.length,
+        lastAccessedAt: enrollment.lastAccessedAt
+      } : null
     });
   } catch (err) {
     console.error(err.message);

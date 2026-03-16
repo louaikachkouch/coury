@@ -824,6 +824,51 @@ const CourseDetail = () => {
     fetchCourse();
   }, [id]);
 
+  // Auto-save progress periodically and on unload
+  useEffect(() => {
+    if (!course) return;
+
+    const saveProgress = async () => {
+      try {
+        const completedLessons = (course.modules || [])
+          .filter(m => m.completed)
+          .map(m => ({
+            lessonId: m._id || m.id,
+            completed: true,
+            completedAt: new Date()
+          }));
+
+        const progress = course.modules && course.modules.length > 0
+          ? Math.round((completedLessons.length / course.modules.length) * 100)
+          : 0;
+
+        await coursesAPI.updateProgress(course._id || course.id, {
+          progress,
+          completedLessons,
+          currentModule: 0,
+          currentLesson: 0
+        });
+      } catch (error) {
+        console.warn('Failed to auto-save progress:', error);
+      }
+    };
+
+    // Auto-save every 30 seconds
+    const autoSaveInterval = setInterval(saveProgress, 30000);
+
+    // Save on page unload/beforeunload
+    const handleBeforeUnload = () => {
+      saveProgress().catch(() => {});
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(autoSaveInterval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [course]);
+
   const addNewContent = async (newModule) => {
     if (!course) return;
     
@@ -907,12 +952,23 @@ const CourseDetail = () => {
         completedAt: new Date()
       }));
     
-    // Save progress to backend
+    // Save progress to backend immediately
     try {
-      await coursesAPI.updateProgress(course._id || course.id, {
+      const result = await coursesAPI.updateProgress(course._id || course.id, {
         progress,
-        completedLessons
+        completedLessons,
+        currentModule: 0,
+        currentLesson: 0
       });
+      
+      // Update course with server response to ensure sync
+      if (result.course) {
+        setCourse(prevCourse => ({
+          ...prevCourse,
+          progress: result.course.progress || progress,
+          lastAccessedAt: result.course.lastAccessedAt
+        }));
+      }
     } catch (error) {
       console.error('Failed to save progress:', error);
     }
