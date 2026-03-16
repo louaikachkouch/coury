@@ -47,32 +47,67 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isApiAvailable, setIsApiAvailable] = useState(false);
 
+  // Helper function to restore session from storage
+  const restoreSession = async () => {
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    const rememberMe = localStorage.getItem('rememberMe') === 'true';
+
+    // If there's no stored data, skip restoration
+    if (!token || !storedUser) {
+      return false;
+    }
+
+    // If API is available, validate the token is still valid
+    if (isApiAvailable) {
+      try {
+        const data = await authAPI.getMe();
+        setUser(data.user);
+        // Update stored user with latest data from server
+        localStorage.setItem('user', JSON.stringify(data.user));
+        return true;
+      } catch (error) {
+        // Token is invalid/expired, clear storage
+        console.log('Session token expired or invalid');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('rememberMe');
+        return false;
+      }
+    } else {
+      // API not available, restore from cached user data
+      try {
+        const cachedUser = JSON.parse(storedUser);
+        setUser(cachedUser);
+        return true;
+      } catch {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('rememberMe');
+        return false;
+      }
+    }
+  };
+
   // Check for existing auth on mount
   useEffect(() => {
     const initAuth = async () => {
-      // Check if API is available
-      const apiAvailable = await healthCheck();
-      setIsApiAvailable(apiAvailable);
+      try {
+        // Check if API is available
+        const apiAvailable = await healthCheck();
+        setIsApiAvailable(apiAvailable);
 
-      const token = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-
-      if (token && apiAvailable) {
-        try {
-          const data = await authAPI.getMe();
-          setUser(data.user);
-          localStorage.setItem('user', JSON.stringify(data.user));
-        } catch (error) {
-          // Token invalid, clear storage
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-        }
-      } else if (storedUser) {
-        // Fallback to stored user for demo mode
-        setUser(JSON.parse(storedUser));
+        // Try to restore existing session
+        await restoreSession();
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        // Clear storage on critical errors
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('rememberMe');
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
 
     initAuth();
@@ -84,11 +119,25 @@ export const AuthProvider = ({ children }) => {
       try {
         const data = await authAPI.login(email, password);
         
+        // Store auth data in localStorage with timestamp
+        const loginData = {
+          token: data.token,
+          user: data.user,
+          loginTime: Date.now(),
+          rememberMe: rememberMe
+        };
+        
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('authData', JSON.stringify(loginData));
         
         if (rememberMe) {
           localStorage.setItem('rememberMe', 'true');
+          // Set a persistent session (30 days)
+          localStorage.setItem('sessionExpiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+        } else {
+          localStorage.removeItem('rememberMe');
+          localStorage.removeItem('sessionExpiry');
         }
         
         setUser(data.user);
@@ -108,11 +157,16 @@ export const AuthProvider = ({ children }) => {
         if (demoUser) {
           const { password: _, ...userData } = demoUser;
           
-          localStorage.setItem('token', 'demo-token-' + Date.now());
+          const demoToken = 'demo-token-' + Date.now();
+          localStorage.setItem('token', demoToken);
           localStorage.setItem('user', JSON.stringify(userData));
           
           if (rememberMe) {
             localStorage.setItem('rememberMe', 'true');
+            localStorage.setItem('sessionExpiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+          } else {
+            localStorage.removeItem('rememberMe');
+            localStorage.removeItem('sessionExpiry');
           }
           
           setUser(userData);
@@ -132,6 +186,9 @@ export const AuthProvider = ({ children }) => {
         
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        // Auto-remember user on registration
+        localStorage.setItem('rememberMe', 'true');
+        localStorage.setItem('sessionExpiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
         
         setUser(data.user);
         return data.user;
@@ -151,8 +208,11 @@ export const AuthProvider = ({ children }) => {
             avatar: `https://i.pravatar.cc/150?u=${email}`,
           };
           
-          localStorage.setItem('token', 'demo-token-' + Date.now());
+          const demoToken = 'demo-token-' + Date.now();
+          localStorage.setItem('token', demoToken);
           localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.setItem('rememberMe', 'true');
+          localStorage.setItem('sessionExpiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
           
           setUser(userData);
           resolve(userData);
@@ -164,9 +224,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // Clear all auth-related storage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberMe');
+    localStorage.removeItem('authData');
+    localStorage.removeItem('sessionExpiry');
     sessionStorage.clear();
     setUser(null);
   };
@@ -177,6 +240,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const data = await userAPI.updateProfile(updates);
         setUser(data.user);
+        // Update stored user while preserving session data
         localStorage.setItem('user', JSON.stringify(data.user));
         return data.user;
       } catch (error) {
