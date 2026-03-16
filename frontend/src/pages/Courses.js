@@ -188,16 +188,66 @@ const CourseCard = ({ course, onClick, onEnroll, enrolling }) => {
       <div className="space-y-3">
         {course.isEnrolled ? (
           <>
-            <div>
-              <div className="flex justify-between text-xs mb-1.5 font-medium">
-                <span className="text-muted-foreground">Course Progress</span>
-                <span className="text-foreground">{course.progress || 0}%</span>
+            {/* Enhanced Progress Section */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground">Progress</span>
+                  {course.progress === 100 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                      ✓ Completed
+                    </span>
+                  )}
+                </div>
+                <span className={`text-sm font-bold ${
+                  course.progress === 100 ? 'text-green-600' :
+                  course.progress >= 75 ? 'text-blue-600' :
+                  course.progress >= 50 ? 'text-amber-600' :
+                  course.progress > 0 ? 'text-orange-600' :
+                  'text-muted-foreground'
+                }`}>
+                  {course.progress || 0}%
+                </span>
               </div>
-              <div className="h-2 w-full bg-muted/50 rounded-full overflow-hidden">
+
+              {/* Animated Progress Bar */}
+              <div className="relative h-3 w-full bg-muted/40 rounded-full overflow-hidden border border-border/50">
                 <div
-                  className={`h-full ${course.solidColor} rounded-full`}
-                  style={{ width: `${course.progress || 0}%` }}
-                />
+                  className={`h-full ${course.solidColor} rounded-full transition-all duration-500 ease-out relative shadow-lg`}
+                  style={{ 
+                    width: `${course.progress || 0}%`,
+                    background: course.progress === 100 
+                      ? 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)'
+                      : null
+                  }}
+                >
+                  {/* Subtle shimmer effect for active progress */}
+                  {course.progress > 0 && course.progress < 100 && (
+                    <div 
+                      className="absolute inset-0 opacity-20"
+                      style={{
+                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
+                        animation: 'shimmer 2s infinite'
+                      }}
+                    />
+                  )}
+                </div>
+
+                {/* Completion indicator */}
+                {course.progress === 100 && (
+                  <div className="absolute right-0 top-1/2 transform -translate-y-1/2 -translate-x-1 text-xs font-bold text-white pr-1">
+                    ✓
+                  </div>
+                )}
+              </div>
+
+              {/* Progress Details */}
+              <div className="flex flex-col sm:flex-row gap-2 text-xs text-muted-foreground justify-between">
+                <span>
+                  {course.progress === 100 ? 'Course completed!' : 
+                   course.progress > 0 ? `${course.progress}% complete` : 
+                   'Not started'}
+                </span>
               </div>
             </div>
 
