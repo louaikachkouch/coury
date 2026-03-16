@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -11,9 +11,28 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true); // Default to checked
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState('');
+
+  // Check if session expired on mount
+  useEffect(() => {
+    const sessionExpiry = localStorage.getItem('sessionExpiry');
+    const rememberMeEnabled = localStorage.getItem('rememberMe') === 'true';
+    
+    if (sessionExpiry && rememberMeEnabled) {
+      const expiryTime = parseInt(sessionExpiry, 10);
+      if (Date.now() > expiryTime) {
+        // Session expired
+        setSessionExpiredMessage('Your session has expired. Please sign in again.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('rememberMe');
+        localStorage.removeItem('sessionExpiry');
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -99,6 +118,13 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Session Expired Message */}
+            {sessionExpiredMessage && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-600 dark:text-amber-400 text-sm">
+                {sessionExpiredMessage}
+              </div>
+            )}
+
             {/* Error Message */}
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-sm">
@@ -160,7 +186,10 @@ const Login = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-4 h-4 rounded border-border text-primary focus:ring-primary/50"
                 />
-                <span className="text-sm text-muted-foreground">Remember me</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium text-foreground">Keep me signed in</span>
+                  <span className="text-xs text-muted-foreground">30-day session</span>
+                </div>
               </label>
               <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                 Forgot password?
