@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, BookOpen, GraduationCap, Camera, ArrowLeft, Check, Loader2, Phone, MapPin, Calendar, Globe } from 'lucide-react';
+import { User, Mail, BookOpen, GraduationCap, Camera, ArrowLeft, Check, Loader2, Phone, MapPin, Calendar, Globe, AlertCircle, Save } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,8 @@ const Profile = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [error, setError] = useState('');
+  const [hasChanges, setHasChanges] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
   
   const [formData, setFormData] = useState({
@@ -32,7 +34,9 @@ const Profile = () => {
       ...prev,
       [name]: value,
     }));
+    setHasChanges(true);
     setIsSaved(false);
+    setError('');
   };
 
   const handleAvatarClick = () => {
@@ -42,18 +46,89 @@ const Profile = () => {
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setError('Image must be less than 2MB');
+        return;
+      }
+      
+      // Validate file type
+      if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+        setError('Only JPG, PNG, or GIF files are allowed');
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result);
+        setHasChanges(true);
         setIsSaved(false);
+        setError('');
+      };
+      reader.onerror = () => {
+        setError('Failed to read image file');
       };
       reader.readAsDataURL(file);
     }
   };
 
+  const validateForm = () => {
+    // Validate name
+    if (!formData.name.trim()) {
+      setError('Name is required');
+      return false;
+    }
+    if (formData.name.trim().length < 2) {
+      setError('Name must be at least 2 characters');
+      return false;
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
+    // Validate phone if provided
+    if (formData.phone && formData.phone.length < 10) {
+      setError('Please enter a valid phone number');
+      return false;
+    }
+
+    // Validate bio length
+    if (formData.bio.length > 500) {
+      setError('Bio cannot exceed 500 characters');
+      return false;
+    }
+
+    // Validate website if provided
+    if (formData.website) {
+      try {
+        new URL(formData.website);
+      } catch {
+        setError('Please enter a valid website URL (e.g., https://example.com)');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!hasChanges) {
+      setError('No changes to save');
+      return;
+    }
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
+    setError('');
     
     try {
       // Update user context (handles API call if available)
@@ -71,11 +146,13 @@ const Profile = () => {
       });
       
       setIsSaved(true);
+      setHasChanges(false);
       
       // Reset saved indicator after 3 seconds
       setTimeout(() => setIsSaved(false), 3000);
     } catch (error) {
       console.error('Failed to update profile:', error);
+      setError(error.message || 'Failed to save profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -113,6 +190,22 @@ const Profile = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Error Alert */}
+        {error && (
+          <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+            <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+          </div>
+        )}
+
+        {/* Changes Pending Alert */}
+        {hasChanges && !isSaved && (
+          <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+            <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />
+            <span className="text-sm text-amber-600 dark:text-amber-400">You have unsaved changes</span>
+          </div>
+        )}
+
         {/* Avatar Section */}
         <Card className="p-6 border-none shadow-sm">
           <h2 className="text-lg font-bold font-heading mb-4">Profile Picture</h2>
@@ -340,29 +433,44 @@ const Profile = () => {
         </Card>
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-4">
+        <div className="flex items-center justify-between pt-2 pb-4 border-t border-border/50">
           <Button 
             type="button" 
             variant="ghost"
-            onClick={() => navigate('/settings')}
+            onClick={() => {
+              if (hasChanges) {
+                if (window.confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                  navigate('/settings');
+                }
+              } else {
+                navigate('/settings');
+              }
+            }}
           >
             Cancel
           </Button>
           <div className="flex items-center gap-3">
             {isSaved && (
-              <span className="flex items-center gap-2 text-sm text-green-500">
+              <span className="flex items-center gap-2 text-sm text-green-500 animate-in fade-in">
                 <Check className="h-4 w-4" />
                 Saved successfully
               </span>
             )}
-            <Button type="submit" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              disabled={isLoading || !hasChanges}
+              className={`transition-all ${!hasChanges ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Saving...
                 </span>
               ) : (
-                'Save Changes'
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </>
               )}
             </Button>
           </div>

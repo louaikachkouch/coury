@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon, User, Bell, Palette, Shield, HelpCircle, LogOut, ChevronRight, Moon, Sun, X, Check, Lock, Eye, EyeOff, MessageSquare, Send } from 'lucide-react';
 import Card from '../components/ui/Card';
@@ -86,13 +86,23 @@ const Settings = () => {
   const [activeModal, setActiveModal] = useState(null);
   const [themeColor, setThemeColor] = useState(0);
   
-  // Profile state
+  // Profile state - initialized from user context
   const [profile, setProfile] = useState({
-    name: 'Alex Rivera',
-    email: 'alex.rivera@university.edu',
-    major: 'Computer Science',
-    year: 'Junior Year',
+    name: user?.name || '',
+    email: user?.email || '',
+    major: user?.major || '',
+    year: user?.year || '',
   });
+
+  // Sync profile when user changes (after profile update)
+  useEffect(() => {
+    setProfile({
+      name: user?.name || '',
+      email: user?.email || '',
+      major: user?.major || '',
+      year: user?.year || '',
+    });
+  }, [user]);
   
   // Security state
   const [showPassword, setShowPassword] = useState(false);
@@ -415,11 +425,11 @@ const Settings = () => {
             )}
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold">{profile.name}</h2>
-            <p className="text-muted-foreground">{profile.email}</p>
-            <p className="text-sm text-muted-foreground mt-1">{profile.major} • {profile.year}</p>
+            <h2 className="text-xl font-bold">{user?.name || profile.name}</h2>
+            <p className="text-muted-foreground">{user?.email || profile.email}</p>
+            <p className="text-sm text-muted-foreground mt-1">{user?.major || profile.major} • {user?.year || profile.year}</p>
           </div>
-          <Button variant="ghost" onClick={() => setActiveModal('profile')}>Edit Profile</Button>
+          <Button variant="ghost" onClick={() => navigate('/profile')}>Edit Profile</Button>
         </div>
       </Card>
 
