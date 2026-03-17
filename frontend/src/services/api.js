@@ -80,6 +80,20 @@ export const userAPI = {
       throw new Error(data.message || 'Failed to get user');
     }
     return data;
+  },
+
+  // Change password
+  changePassword: async (currentPassword, newPassword, confirmPassword) => {
+    const response = await fetch(`${API_URL}/users/change-password`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to change password');
+    }
+    return data;
   }
 };
 

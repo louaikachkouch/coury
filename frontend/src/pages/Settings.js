@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, User, Bell, Palette, Shield, HelpCircle, LogOut, ChevronRight, Moon, Sun, X, Check, Lock, Eye, EyeOff, MessageSquare, Send } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Palette, Shield, HelpCircle, LogOut, ChevronRight, Moon, Sun, X, Check, Lock, Eye, EyeOff, MessageSquare, Send, AlertCircle } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { userAPI } from '../services/api';
 
 // Modal component
 const Modal = ({ title, onClose, children }) => (
@@ -111,6 +112,9 @@ const Settings = () => {
     new: '',
     confirm: '',
   });
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
   
   // Contact form state
   const [contactForm, setContactForm] = useState({
@@ -124,13 +128,41 @@ const Settings = () => {
     // Show a brief success indicator (in a real app, you'd save to backend)
   };
 
-  const handleChangePassword = () => {
-    if (passwords.new !== passwords.confirm) {
-      alert('Passwords do not match');
+  const handleChangePassword = async () => {
+    setPasswordError('');
+    
+    // Validate input
+    if (!passwords.current || !passwords.new || !passwords.confirm) {
+      setPasswordError('Please fill in all password fields');
       return;
     }
-    setPasswords({ current: '', new: '', confirm: '' });
-    setActiveModal(null);
+
+    if (passwords.new !== passwords.confirm) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    if (passwords.new.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await userAPI.changePassword(passwords.current, passwords.new, passwords.confirm);
+      setPasswordSuccess(true);
+      setPasswords({ current: '', new: '', confirm: '' });
+      
+      // Close modal and reset after 2 seconds
+      setTimeout(() => {
+        setActiveModal(null);
+        setPasswordSuccess(false);
+      }, 2000);
+    } catch (err) {
+      setPasswordError(err.message || 'Failed to change password');
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   const handleSendMessage = () => {
@@ -228,60 +260,84 @@ const Settings = () => {
 
       {activeModal === 'security' && (
         <Modal title="Security Settings" onClose={() => setActiveModal(null)}>
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
-              <div className="flex items-center gap-3 mb-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <span className="font-medium">Two-Factor Authentication</span>
+          {passwordSuccess ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Check className="h-8 w-8 text-primary" />
               </div>
-              <p className="text-sm text-muted-foreground mb-3">Add an extra layer of security to your account</p>
-              <Button variant="ghost" size="sm">Enable 2FA</Button>
+              <h3 className="font-semibold text-lg">Password Updated!</h3>
+              <p className="text-muted-foreground mt-1">Your password has been changed successfully.</p>
             </div>
-            
-            <div className="border-t border-border/30 pt-4">
-              <h3 className="font-medium mb-4 flex items-center gap-2">
-                <Lock className="h-4 w-4" />
-                Change Password
-              </h3>
-              <div className="space-y-3">
-                <div className="relative">
+          ) : (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                <div className="flex items-center gap-3 mb-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Two-Factor Authentication</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">Add an extra layer of security to your account</p>
+                <Button variant="ghost" size="sm">Enable 2FA</Button>
+              </div>
+              
+              <div className="border-t border-border/30 pt-4">
+                <h3 className="font-medium mb-4 flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  Change Password
+                </h3>
+                
+                {passwordError && (
+                  <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                    <span className="text-sm text-red-600 dark:text-red-400">{passwordError}</span>
+                  </div>
+                )}
+                
+                <div className="space-y-3">
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Current password"
+                      value={passwords.current}
+                      onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                      className="w-full h-10 px-3 pr-10 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Current password"
-                    value={passwords.current}
-                    onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                    className="w-full h-10 px-3 pr-10 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="New password"
+                    value={passwords.new}
+                    onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                    className="w-full h-10 px-3 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Confirm new password"
+                    value={passwords.confirm}
+                    onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                    className="w-full h-10 px-3 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
                 </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="New password"
-                  value={passwords.new}
-                  onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                  className="w-full h-10 px-3 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Confirm new password"
-                  value={passwords.confirm}
-                  onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                  className="w-full h-10 px-3 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button variant="ghost" onClick={() => setActiveModal(null)} className="flex-1">Cancel</Button>
+                <Button 
+                  onClick={handleChangePassword} 
+                  className="flex-1"
+                  disabled={passwordLoading}
+                >
+                  {passwordLoading ? 'Updating...' : 'Update Password'}
+                </Button>
               </div>
             </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button variant="ghost" onClick={() => setActiveModal(null)} className="flex-1">Cancel</Button>
-              <Button onClick={handleChangePassword} className="flex-1">Update Password</Button>
-            </div>
-          </div>
+          )}
         </Modal>
       )}
 
@@ -449,7 +505,7 @@ const Settings = () => {
         />
       </SettingsSection>
 
-      {/* Notification Settings */}
+      {/* Notification Settings 
       <SettingsSection title="Notifications">
         <SettingsItem 
           icon={Bell}
@@ -496,6 +552,7 @@ const Settings = () => {
           }
         />
       </SettingsSection>
+      */}
 
       {/* Appearance */}
       <SettingsSection title="Appearance">
