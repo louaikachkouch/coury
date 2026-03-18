@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, ChevronLeft, FileText, Video, Calendar, Users, X, MessageSquare, Download, Upload, Eye, CheckCircle, Play, Plus, Loader2, Trash2 } from 'lucide-react';
+import { BookOpen, Clock, ChevronLeft, FileText, Video, Calendar, Users, X, MessageSquare, Download, Upload, Eye, CheckCircle, Play, Plus, Loader2, Trash2, Sparkles } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { coursesAPI, healthCheck } from '../services/api';
@@ -147,6 +147,38 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-wrap justify-end sm:flex-nowrap flex-shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(`${module.fileUrl}#toolbar=0&navpanes=0&scrollbar=1`, '_blank', 'noopener,noreferrer');
+              }}
+              className="relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(224, 142, 121, 0.95) 0%, rgba(201, 105, 81, 0.95) 50%, rgba(126, 168, 190, 0.95) 100%)',
+                color: '#ffffff',
+                boxShadow: '0 8px 20px rgba(224, 142, 121, 0.35)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+                e.currentTarget.style.boxShadow = '0 12px 26px rgba(224, 142, 121, 0.45)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(224, 142, 121, 0.35)';
+              }}
+              title="Resume reading"
+            >
+              <span
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background: 'linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.25) 50%, transparent 65%)',
+                  transform: 'translateX(-130%)',
+                  animation: 'pdfResumeShine 2.6s ease-in-out infinite'
+                }}
+              />
+              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 relative z-10" />
+              <span className="relative z-10">Resume</span>
+            </button>
             {!module.completed && (
               <button 
                 onClick={onMarkComplete}
@@ -214,6 +246,13 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
           className="hidden md:block fixed top-0 left-1/4 w-1/2 h-32 opacity-30 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse at center, rgba(224, 142, 121, 0.3) 0%, transparent 70%)' }}
         />
+        <style>{`
+          @keyframes pdfResumeShine {
+            0% { transform: translateX(-130%); }
+            45% { transform: translateX(130%); }
+            100% { transform: translateX(130%); }
+          }
+        `}</style>
       </div>
     );
   }
