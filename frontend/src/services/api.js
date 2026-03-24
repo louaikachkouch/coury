@@ -257,6 +257,27 @@ export const coursesAPI = {
     return data;
   },
 
+  // Replace existing lesson file with a new PDF
+  replaceContentFile: async (courseId, lessonId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/courses/${courseId}/content/${lessonId}/file`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to replace file');
+    }
+    return data;
+  },
+
   // Delete a course
   delete: async (courseId) => {
     const response = await fetch(`${API_URL}/courses/${courseId}`, {

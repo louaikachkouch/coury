@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BookOpen, Clock, ChevronLeft, FileText, Video, Calendar, Users, X, MessageSquare, Download, Upload, Eye, CheckCircle, Play, Plus, Loader2, Trash2, Sparkles } from 'lucide-react';
+import { createWorker } from 'tesseract.js';
+import * as pdfjsLib from 'pdfjs-dist';
+import { jsPDF } from 'jspdf';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { coursesAPI, healthCheck } from '../services/api';
@@ -13,6 +16,163 @@ const colorPalette = [
 ];
 
 const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL || ''}/pdf.worker.min.js`;
+
+const MAX_OCR_PAGES = 6;
+const OCR_RENDER_SCALE = 1.75;
+const TESSERACT_WORKER_PATH = '/tesseract/worker.min.js';
+const TESSERACT_CORE_PATH = '/tesseract/tesseract-core.wasm.js';
+const TESSERACT_LANG_PATH = '/tessdata';
+const HF_MAX_INPUT_CHARS = 12000;
+const DELETE_HOLD_MS = 3000;
+
+const summarizeTextWithHuggingFace = async (text) => {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    throw new Error('No text was extracted from the PDF to summarize.');
+  }
+
+  const inputText = trimmed.slice(0, HF_MAX_INPUT_CHARS);
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  const payload = {
+    text: inputText,
+  };
+
+  const response = await fetch(`${API_BASE_URL}/api/courses/summarize`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const rawBody = await response.text();
+  let result = null;
+  try {
+    result = JSON.parse(rawBody);
+  } catch (parseError) {
+    const snippet = rawBody ? rawBody.slice(0, 180).replace(/\s+/g, ' ') : 'empty response body';
+    throw new Error(`Summarization service returned non-JSON response (HTTP ${response.status}): ${snippet}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(result?.message || `Summarization request failed (HTTP ${response.status})`);
+  }
+
+  if (!result?.summary || typeof result.summary !== 'string') {
+    throw new Error('Summarization service did not return a valid summary.');
+  }
+
+  return result.summary.trim();
+};
+
+const buildSummaryPdfBlobUrl = ({ title, summary }) => {
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 44;
+  const headerHeight = 88;
+  const footerHeight = 34;
+  const contentWidth = pageWidth - margin * 2;
+  const contentBottom = pageHeight - footerHeight - 10;
+  const colors = {
+    header: [37, 62, 115],
+    accent: [224, 142, 121],
+    headingBg: [235, 240, 251],
+    headingText: [41, 62, 108],
+    bodyText: [42, 46, 52],
+    metaText: [232, 236, 247],
+    footerText: [107, 117, 134],
+  };
+
+  const renderHeader = () => {
+    doc.setFillColor(...colors.header);
+    doc.rect(0, 0, pageWidth, headerHeight, 'F');
+    doc.setFillColor(...colors.accent);
+    doc.rect(0, headerHeight - 8, pageWidth, 8, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(19);
+    doc.text(title || 'Course Summary', margin, 36);
+
+    doc.setTextColor(...colors.metaText);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const generatedAt = new Date().toLocaleString();
+    doc.text(`Generated on ${generatedAt}`, margin, 55);
+  };
+
+  const renderFooter = () => {
+    const pages = doc.getNumberOfPages();
+    for (let i = 1; i <= pages; i += 1) {
+      doc.setPage(i);
+      doc.setDrawColor(228, 232, 240);
+      doc.line(margin, pageHeight - footerHeight, pageWidth - margin, pageHeight - footerHeight);
+      doc.setTextColor(...colors.footerText);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Page ${i} of ${pages}`, pageWidth - margin, pageHeight - 14, { align: 'right' });
+    }
+  };
+
+  const addNewPage = () => {
+    doc.addPage();
+    renderHeader();
+    return headerHeight + 26;
+  };
+
+  const ensureSpace = (y, requiredHeight) => {
+    if (y + requiredHeight > contentBottom) {
+      return addNewPage();
+    }
+    return y;
+  };
+
+  renderHeader();
+  let y = headerHeight + 26;
+  const lines = (summary || '').split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      y += 8;
+      continue;
+    }
+
+    const isSectionHeading = /^(Comprehensive Course Summary|Overview|Detailed Breakdown|Section\s+\d+)$/i.test(line);
+    if (isSectionHeading) {
+      y = ensureSpace(y, 34);
+      doc.setFillColor(...colors.headingBg);
+      doc.roundedRect(margin, y - 15, contentWidth, 24, 4, 4, 'F');
+      doc.setTextColor(...colors.headingText);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text(line, margin + 10, y + 2);
+      y += 22;
+      continue;
+    }
+
+    const wrapped = doc.splitTextToSize(line, contentWidth - 8);
+    const blockHeight = wrapped.length * 16 + 2;
+    y = ensureSpace(y, blockHeight + 8);
+    doc.setTextColor(...colors.bodyText);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text(wrapped, margin + 4, y);
+    y += blockHeight;
+  }
+
+  renderFooter();
+
+  const blob = doc.output('blob');
+  return URL.createObjectURL(blob);
+};
 
 const buildAuthenticatedFileUrl = (relativePathOrUrl) => {
   if (!relativePathOrUrl) return null;
@@ -32,6 +192,52 @@ const buildAuthenticatedFileUrl = (relativePathOrUrl) => {
 
   const separator = absoluteUrl.includes('?') ? '&' : '?';
   return `${absoluteUrl}${separator}token=${encodeURIComponent(token)}`;
+};
+
+const extractPdfTextWithTesseract = async (pdfUrl) => {
+  const response = await fetch(pdfUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch PDF file (HTTP ${response.status})`);
+  }
+
+  const pdfBuffer = await response.arrayBuffer();
+  const pdfDoc = await pdfjsLib.getDocument({
+    data: pdfBuffer,
+  }).promise;
+  const pagesToScan = Math.min(pdfDoc.numPages, MAX_OCR_PAGES);
+  const worker = await createWorker('eng', 1, {
+    workerPath: TESSERACT_WORKER_PATH,
+    corePath: TESSERACT_CORE_PATH,
+    langPath: TESSERACT_LANG_PATH,
+    gzip: false,
+  });
+  const chunks = [];
+
+  try {
+    for (let pageNumber = 1; pageNumber <= pagesToScan; pageNumber += 1) {
+      const page = await pdfDoc.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: OCR_RENDER_SCALE });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+
+      if (!context) {
+        throw new Error('Failed to initialize canvas context for OCR');
+      }
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({ canvasContext: context, viewport }).promise;
+      const { data: { text } } = await worker.recognize(canvas);
+      if (text && text.trim()) {
+        chunks.push(`Page ${pageNumber}\n${text.trim()}`);
+      }
+    }
+  } finally {
+    await worker.terminate();
+  }
+
+  return chunks.join('\n\n');
 };
 
 const ModuleItem = ({ module, onView, onToggle, onDelete }) => {
@@ -100,13 +306,51 @@ const ModuleItem = ({ module, onView, onToggle, onDelete }) => {
 };
 
 // Module Content Viewer Modal (PDF/Video viewer)
-const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
+const ModuleContentModal = ({ module, course, onClose, onMarkComplete, onSummarySaved }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [showSummaryPopup, setShowSummaryPopup] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summaryPdfUrl, setSummaryPdfUrl] = useState('');
+  const [summaryError, setSummaryError] = useState('');
+  const [isSavingSummary, setIsSavingSummary] = useState(false);
+  const [activeFileUrl, setActiveFileUrl] = useState(module.fileUrl || null);
+  const [isDeleteHolding, setIsDeleteHolding] = useState(false);
+  const [deleteHoldMsLeft, setDeleteHoldMsLeft] = useState(DELETE_HOLD_MS);
+  const deleteHoldTimeoutRef = useRef(null);
+  const deleteHoldIntervalRef = useRef(null);
+  const deleteHoldStartRef = useRef(0);
+
+  const clearDeleteHold = () => {
+    if (deleteHoldTimeoutRef.current) {
+      clearTimeout(deleteHoldTimeoutRef.current);
+      deleteHoldTimeoutRef.current = null;
+    }
+    if (deleteHoldIntervalRef.current) {
+      clearInterval(deleteHoldIntervalRef.current);
+      deleteHoldIntervalRef.current = null;
+    }
+    deleteHoldStartRef.current = 0;
+    setIsDeleteHolding(false);
+    setDeleteHoldMsLeft(DELETE_HOLD_MS);
+  };
+
+  useEffect(() => {
+    setActiveFileUrl(module.fileUrl || null);
+  }, [module.fileUrl]);
+
+  useEffect(() => {
+    return () => {
+      clearDeleteHold();
+      if (summaryPdfUrl) {
+        URL.revokeObjectURL(summaryPdfUrl);
+      }
+    };
+  }, [summaryPdfUrl]);
   
   // Check if this is a PDF with an actual file
-  const isPdfWithFile = module.type === 'reading' && module.fileUrl;
+  const isPdfWithFile = module.type === 'reading' && activeFileUrl;
 
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -123,6 +367,125 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
       setSubmitted(true);
       onMarkComplete();
     }, 1500);
+  };
+
+  const handleGenerateSummary = async (e) => {
+    e.stopPropagation();
+    if (!activeFileUrl) return;
+
+    setShowSummaryPopup(true);
+    setIsSummarizing(true);
+    setSummaryError('');
+    if (summaryPdfUrl) {
+      URL.revokeObjectURL(summaryPdfUrl);
+      setSummaryPdfUrl('');
+    }
+
+    try {
+      const extractedText = await extractPdfTextWithTesseract(activeFileUrl);
+      const summary = await summarizeTextWithHuggingFace(extractedText);
+      const generatedPdfUrl = buildSummaryPdfBlobUrl({
+        title: module.title,
+        summary,
+      });
+      setSummaryPdfUrl(generatedPdfUrl);
+    } catch (error) {
+      setSummaryError(`Unable to summarize this PDF. ${error?.message || 'Please try again.'}`);
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  const handleKeepSummary = (e) => {
+    e.stopPropagation();
+    const saveSummaryToCourse = async () => {
+      try {
+        if (!summaryPdfUrl) {
+          setShowSummaryPopup(false);
+          return;
+        }
+
+        const courseId = course?._id || course?.id;
+        const lessonId = module?._id || module?.id;
+        if (!courseId || !lessonId) {
+          throw new Error('Missing course or lesson id for saving summary');
+        }
+
+        setIsSavingSummary(true);
+        const response = await fetch(summaryPdfUrl);
+        if (!response.ok) {
+          throw new Error('Unable to read generated summary PDF');
+        }
+
+        const blob = await response.blob();
+        const sanitized = (module?.title || 'summary')
+          .replace(/[^a-z0-9]+/gi, '-')
+          .replace(/^-+|-+$/g, '')
+          .toLowerCase();
+        const fileName = `${sanitized || 'summary'}-generated-summary.pdf`;
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+
+        const result = await coursesAPI.replaceContentFile(courseId, lessonId, file);
+        const updatedFileUrl = buildAuthenticatedFileUrl(result?.lesson?.fileUrl || null);
+
+        if (updatedFileUrl) {
+          setActiveFileUrl(updatedFileUrl);
+        }
+
+        if (onSummarySaved) {
+          onSummarySaved({
+            lessonId,
+            fileUrl: updatedFileUrl,
+            fileName: result?.lesson?.fileName || fileName,
+          });
+        }
+
+        clearDeleteHold();
+        setShowSummaryPopup(false);
+      } catch (error) {
+        setSummaryError(`Unable to save summary as lesson file. ${error?.message || 'Please try again.'}`);
+      } finally {
+        setIsSavingSummary(false);
+      }
+    };
+
+    saveSummaryToCourse();
+  };
+
+  const handleDeleteSummary = () => {
+    clearDeleteHold();
+    if (summaryPdfUrl) {
+      URL.revokeObjectURL(summaryPdfUrl);
+    }
+    setSummaryPdfUrl('');
+    setShowSummaryPopup(false);
+  };
+
+  const startDeleteHold = (e) => {
+    e.stopPropagation();
+    if (isDeleteHolding) return;
+
+    deleteHoldStartRef.current = Date.now();
+    setIsDeleteHolding(true);
+    setDeleteHoldMsLeft(DELETE_HOLD_MS);
+
+    deleteHoldIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - deleteHoldStartRef.current;
+      const remaining = Math.max(0, DELETE_HOLD_MS - elapsed);
+      setDeleteHoldMsLeft(remaining);
+    }, 100);
+
+    deleteHoldTimeoutRef.current = setTimeout(() => {
+      handleDeleteSummary();
+    }, DELETE_HOLD_MS);
+  };
+
+  const cancelDeleteHold = (e) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    if (!isDeleteHolding) return;
+    clearDeleteHold();
   };
 
   // For PDF files with actual content, show fullscreen clean viewer
@@ -148,10 +511,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-wrap justify-end sm:flex-nowrap flex-shrink-0">
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`${module.fileUrl}#toolbar=0&navpanes=0&scrollbar=1`, '_blank', 'noopener,noreferrer');
-              }}
+              onClick={handleGenerateSummary}
               className="relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all overflow-hidden"
               style={{
                 background: 'linear-gradient(135deg, rgba(224, 142, 121, 0.95) 0%, rgba(201, 105, 81, 0.95) 50%, rgba(126, 168, 190, 0.95) 100%)',
@@ -166,7 +526,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
                 e.currentTarget.style.transform = 'translateY(0) scale(1)';
                 e.currentTarget.style.boxShadow = '0 8px 20px rgba(224, 142, 121, 0.35)';
               }}
-              title="Resume reading"
+              title="Generate PDF summary with Hugging Face"
             >
               <span
                 className="pointer-events-none absolute inset-0"
@@ -177,7 +537,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
                 }}
               />
               <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 relative z-10" />
-              <span className="relative z-10">Resume</span>
+              <span className="relative z-10">Summary</span>
             </button>
             {!module.completed && (
               <button 
@@ -199,7 +559,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
                 <span className="md:hidden">Done</span>
               </span>
             )}
-            <a href={module.fileUrl} download={module.fileName || 'document.pdf'} className="flex-shrink-0">
+            <a href={activeFileUrl} download={module.fileName || 'document.pdf'} className="flex-shrink-0">
               <button 
                 className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all"
                 style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'rgba(255, 255, 255, 0.9)' }}
@@ -233,7 +593,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
             }}
           >
             <iframe
-              src={`${module.fileUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+              src={`${activeFileUrl}#toolbar=0&navpanes=0&scrollbar=1`}
               className="w-full h-full border-0"
               title={module.title}
               style={{ background: '#faf8f5' }}
@@ -253,6 +613,78 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete }) => {
             100% { transform: translateX(130%); }
           }
         `}</style>
+
+        {showSummaryPopup && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-1 sm:p-4"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSummaryPopup(false);
+            }}
+          >
+            <Card
+              className="w-[99vw] sm:w-[96vw] lg:w-[92vw] xl:w-[88vw] max-w-7xl h-[96vh] sm:h-[93vh] border border-slate-700/70 bg-slate-950 text-slate-100 shadow-2xl flex flex-col overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {!isSummarizing && !summaryError && summaryPdfUrl && (
+                <div className="px-3 py-2 sm:px-4 sm:py-3 border-b border-slate-700 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 flex items-center justify-between gap-2 sm:gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] sm:text-xs text-slate-300 font-medium tracking-wide uppercase">Course Summary</p>
+                    <h4 className="text-sm sm:text-base font-bold text-white truncate">{course?.title || module?.title || 'Summary PDF'}</h4>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                      type="button"
+                      onMouseDown={startDeleteHold}
+                      onMouseUp={cancelDeleteHold}
+                      onMouseLeave={cancelDeleteHold}
+                      onTouchStart={startDeleteHold}
+                      onTouchEnd={cancelDeleteHold}
+                      onTouchCancel={cancelDeleteHold}
+                      onContextMenu={(e) => e.preventDefault()}
+                      className="h-8 sm:h-9 px-3 text-xs sm:text-sm font-semibold bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      {isDeleteHolding ? `Hold ${Math.ceil(deleteHoldMsLeft / 1000)}s` : 'Delete'}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleKeepSummary}
+                      disabled={isSavingSummary}
+                      className="h-8 sm:h-9 px-3 text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-70 text-white"
+                    >
+                      {isSavingSummary ? 'Saving...' : 'Keep'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-0 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap flex-1 bg-slate-950">
+                {isSummarizing && (
+                  <div className="h-full min-h-[220px] flex items-center justify-center gap-2 text-slate-200 font-medium">
+                    <Loader2 className="h-4 w-4 animate-spin flex-shrink-0 text-orange-300" />
+                    <span>Reading PDF, summarizing with Hugging Face, and generating PDF...</span>
+                  </div>
+                )}
+
+                {!isSummarizing && summaryError && (
+                  <div className="h-full min-h-[220px] flex items-center justify-center px-3 text-center">
+                    <p className="text-red-300 text-sm sm:text-base font-medium">{summaryError}</p>
+                  </div>
+                )}
+
+                {!isSummarizing && !summaryError && summaryPdfUrl && (
+                  <div className="h-full overflow-hidden bg-white">
+                    <iframe
+                      src={`${summaryPdfUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                      title="PDF Summary"
+                      className="w-full h-full min-h-[70vh] sm:min-h-[72vh] border-0"
+                    />
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     );
   }
@@ -961,6 +1393,44 @@ const CourseDetail = () => {
     setShowContentModal(true);
   };
 
+  const handleSummarySaved = ({ lessonId, fileUrl, fileName }) => {
+    setCourse((prevCourse) => {
+      if (!prevCourse) return prevCourse;
+
+      const updatedModules = (prevCourse.modules || []).map((m) => {
+        const id = m._id || m.id;
+        if ((id || '').toString() !== (lessonId || '').toString()) {
+          return m;
+        }
+
+        return {
+          ...m,
+          fileUrl: fileUrl || m.fileUrl,
+          fileName: fileName || m.fileName,
+        };
+      });
+
+      return {
+        ...prevCourse,
+        modules: updatedModules,
+      };
+    });
+
+    setSelectedModule((prev) => {
+      if (!prev) return prev;
+      const id = prev._id || prev.id;
+      if ((id || '').toString() !== (lessonId || '').toString()) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        fileUrl: fileUrl || prev.fileUrl,
+        fileName: fileName || prev.fileName,
+      };
+    });
+  };
+
   const handleMarkModuleComplete = () => {
     if (selectedModule) {
       toggleModuleCompletion(selectedModule._id || selectedModule.id);
@@ -1104,6 +1574,7 @@ const CourseDetail = () => {
           course={course} 
           onClose={() => { setShowContentModal(false); setSelectedModule(null); }}
           onMarkComplete={handleMarkModuleComplete}
+          onSummarySaved={handleSummarySaved}
         />
       )}
       {showAddContent && (

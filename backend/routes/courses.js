@@ -7,6 +7,205 @@ const { protect } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const { getGridFSBucket } = require('../config/db');
 
+const HF_SUMMARY_MODEL_URL = 'https://router.huggingface.co/hf-inference/models/facebook/bart-large-cnn';
+const HF_MAX_INPUT_CHARS = 1200;
+const HF_MAX_CHUNKS = 30;
+const HF_RECURSIVE_MAX_DEPTH = 4;
+const HF_CHUNK_OVERLAP_SENTENCES = 2;
+const HF_MIN_CHUNK_SUMMARY_LEN = 90;
+const HF_MAX_CHUNK_SUMMARY_LEN = 320;
+const HF_REQUEST_RETRIES = 2;
+const HF_RETRY_DELAY_MS = 800;
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const buildLocalFallbackSummary = (text, maxSentences = 7) => {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (!normalized) return '';
+
+  const sentences = normalized.match(/[^.!?]+[.!?]?/g) || [normalized];
+  return sentences.slice(0, maxSentences).join(' ').trim();
+};
+
+const normalizeOcrText = (input) => {
+  const lines = input
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^page\s+\d+$/i.test(line));
+
+  const cleanedLines = [];
+  let prev = '';
+  for (const line of lines) {
+    const alphaChars = (line.match(/[a-zA-Z]/g) || []).length;
+    const symbolChars = (line.match(/[^a-zA-Z0-9\s]/g) || []).length;
+
+    // Skip likely OCR noise lines that are mostly symbols.
+    if (line.length > 8 && symbolChars > alphaChars * 2) {
+      continue;
+    }
+
+    if (line !== prev) {
+      cleanedLines.push(line);
+      prev = line;
+    }
+  }
+
+  return cleanedLines
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b([A-Za-z]+)-\s+([A-Za-z]+)\b/g, '$1$2')
+    .trim();
+};
+
+const chunkTextForSummarization = (input, maxChars = HF_MAX_INPUT_CHARS) => {
+  const text = normalizeOcrText(input);
+  if (!text) {
+    return [];
+  }
+
+  if (text.length <= maxChars) {
+    return [text];
+  }
+
+  const sentences = text.match(/[^.!?]+[.!?]?/g) || [text];
+  const chunks = [];
+  let start = 0;
+
+  while (start < sentences.length && chunks.length < HF_MAX_CHUNKS) {
+    let chunk = '';
+    let end = start;
+
+    while (end < sentences.length) {
+      const candidate = chunk ? `${chunk} ${sentences[end].trim()}` : sentences[end].trim();
+      if (candidate.length > maxChars && chunk) {
+        break;
+      }
+
+      if (candidate.length > maxChars) {
+        chunk = candidate.slice(0, maxChars).trim();
+        end += 1;
+        break;
+      }
+
+      chunk = candidate;
+      end += 1;
+    }
+
+    if (chunk) {
+      chunks.push(chunk.trim());
+    }
+
+    if (end <= start) {
+      start += 1;
+    } else {
+      start = Math.max(end - HF_CHUNK_OVERLAP_SENTENCES, start + 1);
+    }
+  }
+
+  return chunks;
+};
+
+const requestHuggingFaceSummary = async ({ text, hfApiKey, maxLength = 220, minLength = 60 }) => {
+  const payload = {
+    inputs: text,
+    parameters: {
+      max_length: maxLength,
+      min_length: minLength,
+      do_sample: false,
+      num_beams: 4,
+      no_repeat_ngram_size: 3,
+      repetition_penalty: 1.15,
+      length_penalty: 1
+    },
+    options: {
+      wait_for_model: true,
+      use_cache: false
+    }
+  };
+
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= HF_REQUEST_RETRIES; attempt += 1) {
+    try {
+      const hfResponse = await fetch(HF_SUMMARY_MODEL_URL, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${hfApiKey}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const rawBody = await hfResponse.text();
+      let hfData = null;
+      try {
+        hfData = JSON.parse(rawBody);
+      } catch (parseError) {
+        if (!hfResponse.ok) {
+          const snippet = rawBody ? rawBody.slice(0, 180).replace(/\s+/g, ' ') : 'empty response body';
+          const nonJsonError = new Error(`Hugging Face returned non-JSON response (HTTP ${hfResponse.status}): ${snippet}`);
+          nonJsonError.statusCode = hfResponse.status;
+          throw nonJsonError;
+        }
+
+        throw new Error('Hugging Face returned an unexpected non-JSON success response');
+      }
+
+      if (!hfResponse.ok) {
+        const requestError = new Error(hfData?.error || `Hugging Face request failed (HTTP ${hfResponse.status})`);
+        requestError.statusCode = hfResponse.status;
+        throw requestError;
+      }
+
+      if (!Array.isArray(hfData) || !hfData[0]?.summary_text) {
+        throw new Error('Hugging Face returned an invalid summary payload');
+      }
+
+      return hfData[0].summary_text.trim();
+    } catch (error) {
+      lastError = error;
+      const statusCode = error.statusCode || 0;
+      const retryable = [429, 500, 502, 503, 504].includes(statusCode)
+        || /timeout|timed out|gateway|temporar|network/i.test(error.message || '');
+
+      if (!retryable || attempt >= HF_REQUEST_RETRIES) {
+        break;
+      }
+
+      await delay(HF_RETRY_DELAY_MS * (attempt + 1));
+    }
+  }
+
+  throw lastError || new Error('Hugging Face request failed');
+};
+
+const summarizeWithFallback = async ({ text, hfApiKey, depth = 0, maxLength = 220, minLength = 60 }) => {
+  try {
+    return await requestHuggingFaceSummary({ text, hfApiKey, maxLength, minLength });
+  } catch (error) {
+    const isSplitWorthyError = /index out of range|timeout|timed out|gateway|HTTP 504|temporar|non-JSON response \(HTTP 504\)/i.test(error.message || '');
+    if (!isSplitWorthyError || depth >= HF_RECURSIVE_MAX_DEPTH || text.length < 300) {
+      throw error;
+    }
+
+    const midpoint = Math.floor(text.length / 2);
+    const splitAt = text.lastIndexOf(' ', midpoint) > 0 ? text.lastIndexOf(' ', midpoint) : midpoint;
+    const left = text.slice(0, splitAt).trim();
+    const right = text.slice(splitAt).trim();
+
+    if (!left || !right) {
+      throw error;
+    }
+
+    const leftSummary = await summarizeWithFallback({ text: left, hfApiKey, depth: depth + 1, maxLength, minLength });
+    const rightSummary = await summarizeWithFallback({ text: right, hfApiKey, depth: depth + 1, maxLength, minLength });
+    const merged = `${leftSummary} ${rightSummary}`.trim();
+    return summarizeWithFallback({ text: merged, hfApiKey, depth: depth + 1, maxLength, minLength });
+  }
+};
+
 const isUserAllowedForCourse = async (course, userId) => {
   if (course.createdBy && course.createdBy.toString() === userId) {
     return true;
@@ -410,6 +609,81 @@ router.post('/:id/content', protect, upload.single('file'), async (req, res) => 
   }
 });
 
+// @route   PUT /api/courses/:id/content/:lessonId/file
+// @desc    Replace lesson file with a new PDF (e.g., generated summary)
+// @access  Private (course creator only)
+router.put('/:id/content/:lessonId/file', protect, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'PDF file is required' });
+    }
+
+    const course = await Course.findById(req.params.id);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    if (course.createdBy && course.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to modify this course' });
+    }
+
+    let targetLesson = null;
+    for (const mod of course.modules) {
+      const found = mod.lessons.find((lesson) => lesson._id.toString() === req.params.lessonId);
+      if (found) {
+        targetLesson = found;
+        break;
+      }
+    }
+
+    if (!targetLesson) {
+      return res.status(404).json({ message: 'Lesson not found' });
+    }
+
+    const oldFileId = targetLesson.fileId || null;
+    const uploaded = await uploadBufferToGridFS(req.file, {
+      uploadedBy: req.user.id,
+      courseId: req.params.id,
+      lessonId: req.params.lessonId,
+      generatedSummary: true
+    });
+
+    targetLesson.fileName = req.file.originalname;
+    targetLesson.fileId = uploaded._id;
+    targetLesson.filePath = `gridfs://${uploaded._id}`;
+    targetLesson.fileUrl = `/api/courses/files/${uploaded._id}`;
+    targetLesson.fileSize = req.file.size;
+    targetLesson.mimeType = req.file.mimetype;
+
+    course.markModified('modules');
+    await course.save();
+
+    if (oldFileId) {
+      try {
+        const bucket = getGridFSBucket();
+        await bucket.delete(new mongoose.Types.ObjectId(oldFileId));
+      } catch (error) {
+        // Ignore cleanup errors to avoid failing successful replacement.
+      }
+    }
+
+    return res.json({
+      success: true,
+      lesson: {
+        _id: targetLesson._id,
+        fileName: targetLesson.fileName,
+        fileUrl: targetLesson.fileUrl,
+        fileId: targetLesson.fileId,
+        fileSize: targetLesson.fileSize,
+        mimeType: targetLesson.mimeType
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   DELETE /api/courses/:id/content/:lessonId
 // @desc    Delete a lesson from a course
 // @access  Private (course creator only)
@@ -599,6 +873,100 @@ router.get('/files/:fileId', protect, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/courses/summarize
+// @desc    Summarize extracted text using Hugging Face Inference API
+// @access  Private
+router.post('/summarize', protect, async (req, res) => {
+  try {
+    const { text, apiKey } = req.body;
+
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ message: 'Text is required for summarization' });
+    }
+
+    const hfApiKey = process.env.HF_API_KEY || process.env.HUGGINGFACE_API_KEY || apiKey;
+    if (!hfApiKey) {
+      return res.status(400).json({
+        message: 'Hugging Face API key is missing. Set HF_API_KEY in backend env or provide apiKey in request.'
+      });
+    }
+
+    if (typeof fetch !== 'function') {
+      return res.status(500).json({ message: 'Global fetch is unavailable in this Node runtime' });
+    }
+
+    const chunks = chunkTextForSummarization(text);
+    if (chunks.length === 0) {
+      return res.status(400).json({ message: 'No usable text found for summarization' });
+    }
+
+    const partialSummaries = [];
+    for (let i = 0; i < chunks.length; i += 1) {
+      const chunk = chunks[i];
+      const dynamicMax = Math.max(
+        HF_MIN_CHUNK_SUMMARY_LEN + 40,
+        Math.min(HF_MAX_CHUNK_SUMMARY_LEN, Math.floor(chunk.length / 4))
+      );
+      const dynamicMin = Math.max(HF_MIN_CHUNK_SUMMARY_LEN, Math.floor(dynamicMax * 0.45));
+
+      let summary;
+      try {
+        summary = await summarizeWithFallback({
+          text: chunk,
+          hfApiKey,
+          maxLength: dynamicMax,
+          minLength: dynamicMin
+        });
+      } catch (error) {
+        summary = buildLocalFallbackSummary(chunk, 6);
+      }
+
+      partialSummaries.push(`Section ${i + 1}\n${summary}`);
+    }
+
+    let finalSummary;
+    if (partialSummaries.length === 1) {
+      finalSummary = [
+        'Comprehensive Course Summary',
+        '',
+        partialSummaries[0]
+      ].join('\n');
+    } else {
+      const mergedForOverview = partialSummaries.join(' ');
+      const compressedChunks = chunkTextForSummarization(mergedForOverview, HF_MAX_INPUT_CHARS);
+      let overview;
+      try {
+        overview = await summarizeWithFallback({
+          text: compressedChunks.slice(0, 2).join(' '),
+          hfApiKey,
+          maxLength: 300,
+          minLength: 140
+        });
+      } catch (error) {
+        overview = buildLocalFallbackSummary(partialSummaries.join(' '), 8);
+      }
+
+      finalSummary = [
+        'Comprehensive Course Summary',
+        '',
+        'Overview',
+        overview,
+        '',
+        'Detailed Breakdown',
+        partialSummaries.join('\n\n')
+      ].join('\n');
+    }
+
+    return res.json({
+      success: true,
+      summary: finalSummary,
+      chunksUsed: chunks.length
+    });
+  } catch (error) {
+    return res.status(500).json({ message: `Summarization failed: ${error.message}` });
   }
 });
 
