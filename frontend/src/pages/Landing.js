@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
 
 const Landing = () => {
-  const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -258,13 +256,13 @@ const Landing = () => {
               © 2026 Coury. All rights reserved.
             </p>
             <div className="flex items-center gap-4 sm:gap-6">
-              <a href="#" className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors">
+              <a href="/privacy" className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors">
                 Privacy
               </a>
-              <a href="#" className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors">
+              <a href="/terms" className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors">
                 Terms
               </a>
-              <a href="#" className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors">
+              <a href="/contact" className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </a>
             </div>

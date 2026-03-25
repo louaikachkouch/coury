@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, User, Bell, Palette, Shield, HelpCircle, LogOut, ChevronRight, Moon, Sun, X, Check, Lock, Eye, EyeOff, MessageSquare, Send, AlertCircle } from 'lucide-react';
+import { Settings as SettingsIcon, User, Palette, Shield, HelpCircle, LogOut, ChevronRight, Moon, Sun, X, Check, Lock, Eye, EyeOff, MessageSquare, Send, AlertCircle } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useTheme } from '../context/ThemeContext';
@@ -76,13 +76,6 @@ const Settings = () => {
   const navigate = useNavigate();
   const { darkMode, toggleDarkMode } = useTheme();
   const { logout, user } = useAuth();
-  
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
-    assignments: true,
-    announcements: false,
-  });
 
   const [activeModal, setActiveModal] = useState(null);
   const [themeColor, setThemeColor] = useState(0);

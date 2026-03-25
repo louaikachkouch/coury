@@ -491,7 +491,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete, onSummary
   // For PDF files with actual content, show fullscreen clean viewer
   if (isPdfWithFile) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }} onClick={onClose}>
+      <div className="fixed inset-0 z-50 flex flex-col h-dvh" style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }} onClick={onClose}>
         {/* Responsive Header with warm accents */}
         <div 
           className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 md:px-8 py-3 sm:py-4 backdrop-blur-md overflow-auto"
@@ -509,7 +509,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete, onSummary
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-wrap justify-end sm:flex-nowrap flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-nowrap justify-start sm:justify-end flex-shrink-0 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
             <button
               onClick={handleGenerateSummary}
               className="relative flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all overflow-hidden"
@@ -585,7 +585,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete, onSummary
         </div>
         
         {/* Responsive PDF Viewer with cozy frame */}
-        <div className="flex-1 p-2 sm:p-4 md:p-6 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex-1 min-h-0 p-1.5 sm:p-4 md:p-6 overflow-hidden" onClick={(e) => e.stopPropagation()}>
           <div 
             className="w-full h-full rounded-xl sm:rounded-2xl overflow-hidden"
             style={{ 
@@ -593,7 +593,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete, onSummary
             }}
           >
             <iframe
-              src={`${activeFileUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+              src={`${activeFileUrl}#toolbar=0&navpanes=0&scrollbar=1&zoom=page-width`}
               className="w-full h-full border-0"
               title={module.title}
               style={{ background: '#faf8f5' }}
@@ -675,7 +675,7 @@ const ModuleContentModal = ({ module, course, onClose, onMarkComplete, onSummary
                 {!isSummarizing && !summaryError && summaryPdfUrl && (
                   <div className="h-full overflow-hidden bg-white">
                     <iframe
-                      src={`${summaryPdfUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                      src={`${summaryPdfUrl}#toolbar=0&navpanes=0&scrollbar=1&zoom=page-width`}
                       title="PDF Summary"
                       className="w-full h-full min-h-[70vh] sm:min-h-[72vh] border-0"
                     />

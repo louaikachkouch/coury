@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI, userAPI, healthCheck } from '../services/api';
 
 const AuthContext = createContext();
@@ -48,10 +48,9 @@ export const AuthProvider = ({ children }) => {
   const [isApiAvailable, setIsApiAvailable] = useState(false);
 
   // Helper function to restore session from storage
-  const restoreSession = async () => {
+  const restoreSession = useCallback(async (apiAvailable) => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    const rememberMe = localStorage.getItem('rememberMe') === 'true';
 
     // If there's no stored data, skip restoration
     if (!token || !storedUser) {
@@ -59,7 +58,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     // If API is available, validate the token is still valid
-    if (isApiAvailable) {
+    if (apiAvailable) {
       try {
         const data = await authAPI.getMe();
         setUser(data.user);
@@ -87,7 +86,7 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
     }
-  };
+  }, []);
 
   // Check for existing auth on mount
   useEffect(() => {
@@ -98,7 +97,7 @@ export const AuthProvider = ({ children }) => {
         setIsApiAvailable(apiAvailable);
 
         // Try to restore existing session
-        await restoreSession();
+        await restoreSession(apiAvailable);
       } catch (error) {
         console.error('Auth initialization error:', error);
         // Clear storage on critical errors
@@ -111,7 +110,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     initAuth();
-  }, []);
+  }, [restoreSession]);
 
   const login = async (email, password, rememberMe = false) => {
     // Try API first

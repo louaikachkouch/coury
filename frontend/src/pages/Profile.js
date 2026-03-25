@@ -91,7 +91,7 @@ const Profile = () => {
     }
 
     // Validate phone if provided
-    if (formData.phone && formData.phone.length < 10) {
+    if (formData.phone && formData.phone.length < 8) {
       setError('Please enter a valid phone number');
       return false;
     }

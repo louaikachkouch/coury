@@ -1,12 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { BookOpen, Home, Calendar, Settings, Moon, Sun, ChevronRight, User } from 'lucide-react';
+import { BookOpen, Home, Calendar, Settings, ChevronRight, User } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
   const location = useLocation();
-  const { darkMode, toggleDarkMode } = useTheme();
   const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
   const collapseTimeoutRef = useRef(null);
