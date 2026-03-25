@@ -5,6 +5,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { coursesAPI, healthCheck } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import Seo from '../components/seo/Seo';
 
 const courseColors = [
   { color: 'bg-[#E08E79]/15 text-[#C96951]', solidColor: 'bg-[#E08E79]', name: 'Coral' },
@@ -413,6 +414,7 @@ const Courses = () => {
 
   return (
     <div className="space-y-8 animate-fadeIn">
+      <Seo title="Courses" description="Manage your enrolled courses in Coury." path="/courses" noindex />
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>

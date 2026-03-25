@@ -1,11 +1,29 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import Seo from '../components/seo/Seo';
 
 const Landing = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Smart Course Management for Students"
+        description="Coury helps students organize coursework, track progress, manage schedules, and stay consistent with their academic goals."
+        path="/"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'Coury',
+          url: 'https://coury.vercel.app/',
+          description: 'Student-focused course and schedule management platform',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: 'https://coury.vercel.app/courses?q={search_term_string}',
+            'query-input': 'required name=search_term_string'
+          }
+        }}
+      />
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

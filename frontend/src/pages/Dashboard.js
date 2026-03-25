@@ -3,10 +3,12 @@ import HeroSection from '../components/sections/HeroSection';
 import CoursesSection from '../components/sections/CoursesSection';
 import UpNextSection from '../components/sections/UpNextSection';
 import AnnouncementCard from '../components/sections/AnnouncementCard';
+import Seo from '../components/seo/Seo';
 
 const Dashboard = () => {
   return (
     <div className="space-y-8 animate-fadeIn">
+      <Seo title="Dashboard" description="Your Coury dashboard." path="/dashboard" noindex />
       {/* Hero Section */}
       <HeroSection />
 

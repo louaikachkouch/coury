@@ -7,6 +7,7 @@ import { jsPDF } from 'jspdf';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { coursesAPI, healthCheck } from '../services/api';
+import Seo from '../components/seo/Seo';
 
 const colorPalette = [
   { color: 'bg-[#E08E79]/15 text-[#C96951]', solidColor: 'bg-[#E08E79]' },
@@ -1565,6 +1566,12 @@ const CourseDetail = () => {
 
   return (
     <div className="space-y-8">
+      <Seo
+        title={course ? `${course.title} Course` : 'Course Detail'}
+        description={course?.description || 'Course detail and progress view in Coury.'}
+        path={`/courses/${id}`}
+        noindex
+      />
       {/* Modals */}
       {showSyllabus && <SyllabusModal course={course} onClose={() => setShowSyllabus(false)} />}
       {showDiscussion && <DiscussionModal course={course} onClose={() => setShowDiscussion(false)} />}

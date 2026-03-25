@@ -12,6 +12,9 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import Contact from './pages/Contact';
 import './App.css';
 
 function App() {
@@ -22,6 +25,9 @@ function App() {
           <Routes>
             {/* Landing page */}
             <Route path="/" element={<Landing />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/contact" element={<Contact />} />
             
             {/* Auth pages without AppLayout */}
             <Route path="/login" element={<Login />} />

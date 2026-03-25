@@ -1,3 +1,9 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /dashboard
+Disallow: /courses
+Disallow: /schedule
+Disallow: /settings
+Disallow: /profile
+
+Sitemap: https://coury.vercel.app/sitemap.xml

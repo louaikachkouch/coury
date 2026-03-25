@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Mail, Lock, Eye, EyeOff, User, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
+import Seo from '../components/seo/Seo';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -64,6 +65,7 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <Seo title="Register" description="Create your Coury account." path="/register" noindex />
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary/5 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
