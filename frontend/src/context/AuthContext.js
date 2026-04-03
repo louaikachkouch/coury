@@ -145,36 +145,6 @@ export const AuthProvider = ({ children }) => {
         throw error;
       }
     }
-    
-    // Fallback to demo users
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const demoUser = DEMO_USERS.find(
-          u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        );
-        
-        if (demoUser) {
-          const { password: _, ...userData } = demoUser;
-          
-          const demoToken = 'demo-token-' + Date.now();
-          localStorage.setItem('token', demoToken);
-          localStorage.setItem('user', JSON.stringify(userData));
-          
-          if (rememberMe) {
-            localStorage.setItem('rememberMe', 'true');
-            localStorage.setItem('sessionExpiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
-          } else {
-            localStorage.removeItem('rememberMe');
-            localStorage.removeItem('sessionExpiry');
-          }
-          
-          setUser(userData);
-          resolve(userData);
-        } else {
-          reject(new Error('Invalid email or password. Try: demo@coury.com / demo123'));
-        }
-      }, 800);
-    });
   };
 
   const register = async (fullName, email, password) => {
