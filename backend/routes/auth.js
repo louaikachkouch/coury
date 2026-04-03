@@ -56,8 +56,14 @@ router.post(
       } catch (emailErr) {
         // Roll back the user if verification email cannot be sent.
         await User.deleteOne({ _id: user._id });
+        console.error('Verification email send failed:', emailErr.message);
+
+        const message = emailErr.message && emailErr.message.includes('SMTP is not configured')
+          ? 'Email service is not configured on the server. Please contact support or try again later.'
+          : 'Could not send verification code. Account was not created. Please try again.';
+
         return res.status(500).json({
-          message: 'Could not send verification code. Account was not created. Please try again.'
+          message
         });
       }
 
