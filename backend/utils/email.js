@@ -18,7 +18,7 @@ const createTransporter = () => {
   });
 };
 
-const sendVerificationEmail = async ({ email, name, verificationUrl }) => {
+const sendVerificationCodeEmail = async ({ email, name, verificationCode }) => {
   if (!hasSmtpConfig()) {
     throw new Error('SMTP is not configured. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and SMTP_FROM.');
   }
@@ -29,14 +29,11 @@ const sendVerificationEmail = async ({ email, name, verificationUrl }) => {
       <h2>Verify your Coury account</h2>
       <p>Hello ${name || 'there'},</p>
       <p>Thanks for registering. Please verify your email address to activate your account.</p>
-      <p>
-        <a href="${verificationUrl}" style="display: inline-block; padding: 10px 16px; background: #111827; color: #fff; text-decoration: none; border-radius: 6px;">
-          Verify Email
-        </a>
-      </p>
-      <p>If the button does not work, copy and paste this link into your browser:</p>
-      <p>${verificationUrl}</p>
-      <p>This link expires in 24 hours.</p>
+      <p>Your verification code is:</p>
+      <div style="display: inline-block; padding: 10px 16px; background: #111827; color: #fff; border-radius: 6px; letter-spacing: 4px; font-size: 20px; font-weight: bold;">
+        ${verificationCode}
+      </div>
+      <p>This code expires in 10 minutes.</p>
     </div>
   `;
 
@@ -48,4 +45,4 @@ const sendVerificationEmail = async ({ email, name, verificationUrl }) => {
   });
 };
 
-module.exports = { sendVerificationEmail, hasSmtpConfig };
+module.exports = { sendVerificationCodeEmail, hasSmtpConfig };

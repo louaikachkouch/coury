@@ -64,8 +64,8 @@ const Login = () => {
     setInfoMessage('');
     setIsResendingVerification(true);
     try {
-      await authAPI.resendVerification(email);
-      setInfoMessage('Verification email sent. Please check your inbox.');
+      await authAPI.resendVerificationCode(email);
+      setInfoMessage('Verification code sent. Please check your inbox.');
     } catch (err) {
       setError(err.message || 'Failed to resend verification email.');
     } finally {

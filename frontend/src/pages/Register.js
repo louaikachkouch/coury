@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Mail, Lock, Eye, EyeOff, User, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/seo/Seo';
+import { authAPI } from '../services/api';
 
 const Register = () => {
-  const { register } = useAuth();
+  const navigate = useNavigate();
+  const { register, verifyEmailCode } = useAuth();
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -19,7 +21,12 @@ const Register = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
+  const [step, setStep] = useState('form');
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [isResendingCode, setIsResendingCode] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -31,7 +38,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccessMessage('');
+    setInfoMessage('');
     
     // Validation
     if (formData.password !== formData.confirmPassword) {
@@ -48,18 +55,48 @@ const Register = () => {
     
     try {
       const response = await register(formData.fullName, formData.email, formData.password);
-      setSuccessMessage(response.message || 'Account created. Please verify your email before signing in.');
-      setFormData({
-        fullName: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
-      });
-      setAgreedToTerms(false);
+      setVerificationEmail(formData.email);
+      setStep('code');
+      setInfoMessage(response.message || 'Enter the 6-digit code sent to your email.');
     } catch (err) {
       setError(err.message || 'Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    setError('');
+    setInfoMessage('');
+
+    if (!/^\d{6}$/.test(verificationCode)) {
+      setError('Please enter a valid 6-digit code');
+      return;
+    }
+
+    setIsVerifyingCode(true);
+    try {
+      await verifyEmailCode(verificationEmail, verificationCode, true);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Invalid or expired verification code');
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setError('');
+    setInfoMessage('');
+    setIsResendingCode(true);
+    try {
+      await authAPI.resendVerificationCode(verificationEmail);
+      setInfoMessage('A new 6-digit verification code has been sent.');
+    } catch (err) {
+      setError(err.message || 'Failed to resend verification code');
+    } finally {
+      setIsResendingCode(false);
     }
   };
 
@@ -138,7 +175,9 @@ const Register = () => {
           </div>
 
           <div className="text-center lg:text-left mb-8">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Create your account</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              {step === 'form' ? 'Create your account' : 'Verify your email'}
+            </h2>
             <p className="text-muted-foreground">
               Already have an account?{' '}
               <Link to="/login" className="text-primary hover:underline font-medium">
@@ -147,7 +186,7 @@ const Register = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={step === 'form' ? handleSubmit : handleVerifyCode} className="space-y-5">
             {/* Error Message */}
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-sm">
@@ -155,154 +194,215 @@ const Register = () => {
               </div>
             )}
 
-            {successMessage && (
+            {infoMessage && (
               <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-green-600 text-sm">
-                {successMessage}
+                {infoMessage}
               </div>
             )}
-            
-            {/* Full Name Field */}
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-foreground mb-2">
-                Full name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  className="w-full pl-10 pr-4 py-3 bg-muted/30 border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                  required
-                />
-              </div>
-            </div>
 
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                Email address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  className="w-full pl-10 pr-4 py-3 bg-muted/30 border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create a password"
-                  className="w-full pl-10 pr-12 py-3 bg-muted/30 border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-              {/* Password Requirements */}
-              {formData.password && (
-                <div className="mt-2 space-y-1">
-                  {passwordRequirements.map((req, index) => (
-                    <div key={index} className="flex items-center gap-2 text-xs">
-                      <div className={`w-1.5 h-1.5 rounded-full ${req.met ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
-                      <span className={req.met ? 'text-green-500' : 'text-muted-foreground'}>{req.label}</span>
-                    </div>
-                  ))}
+            {step === 'form' && (
+              <>
+                <div>
+                  <label htmlFor="fullName" className="block text-sm font-medium text-foreground mb-2">
+                    Full name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <input
+                      id="fullName"
+                      name="fullName"
+                      type="text"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      placeholder="Enter your full name"
+                      className="w-full pl-10 pr-4 py-3 bg-muted/30 border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                      required
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Confirm Password Field */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-2">
-                Confirm password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm your password"
-                  className={`w-full pl-10 pr-12 py-3 bg-muted/30 border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors ${
-                    formData.confirmPassword 
-                      ? passwordsMatch 
-                        ? 'border-green-500/50 focus:border-green-500' 
-                        : 'border-red-500/50 focus:border-red-500'
-                      : 'border-border/50 focus:border-primary'
-                  }`}
-                  required
-                />
-                <button
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+                    Email address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter your email"
+                      className="w-full pl-10 pr-4 py-3 bg-muted/30 border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Create a password"
+                      className="w-full pl-10 pr-12 py-3 bg-muted/30 border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                  {formData.password && (
+                    <div className="mt-2 space-y-1">
+                      {passwordRequirements.map((req, index) => (
+                        <div key={index} className="flex items-center gap-2 text-xs">
+                          <div className={`w-1.5 h-1.5 rounded-full ${req.met ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
+                          <span className={req.met ? 'text-green-500' : 'text-muted-foreground'}>{req.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-2">
+                    Confirm password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Confirm your password"
+                      className={`w-full pl-10 pr-12 py-3 bg-muted/30 border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors ${
+                        formData.confirmPassword
+                          ? passwordsMatch
+                            ? 'border-green-500/50 focus:border-green-500'
+                            : 'border-red-500/50 focus:border-red-500'
+                          : 'border-border/50 focus:border-primary'
+                      }`}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                  {formData.confirmPassword && !passwordsMatch && (
+                    <p className="mt-1 text-xs text-red-500">Passwords do not match</p>
+                  )}
+                </div>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 rounded border-border text-primary focus:ring-primary/50"
+                    required
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    I agree to the{' '}
+                    <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+                    {' '}and{' '}
+                    <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+                  </span>
+                </label>
+
+                <Button type="submit" className="w-full py-3 text-base" disabled={isLoading}>
+                  {isLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Creating account...
+                    </span>
+                  ) : (
+                    'Create account'
+                  )}
+                </Button>
+              </>
+            )}
+
+            {step === 'code' && (
+              <>
+                <div>
+                  <label htmlFor="verificationCode" className="block text-sm font-medium text-foreground mb-2">
+                    6-digit verification code
+                  </label>
+                  <input
+                    id="verificationCode"
+                    name="verificationCode"
+                    type="text"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Enter 6-digit code"
+                    className="w-full px-4 py-3 bg-muted/30 border border-border/50 rounded-xl text-foreground text-center tracking-[0.35em] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                    required
+                  />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Code sent to {verificationEmail}
+                  </p>
+                </div>
+
+                <Button type="submit" className="w-full py-3 text-base" disabled={isVerifyingCode}>
+                  {isVerifyingCode ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Verifying...
+                    </span>
+                  ) : (
+                    'Verify and continue'
+                  )}
+                </Button>
+
+                <Button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  variant="outline"
+                  className="w-full py-3 text-base"
+                  onClick={handleResendCode}
+                  disabled={isResendingCode}
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-              {formData.confirmPassword && !passwordsMatch && (
-                <p className="mt-1 text-xs text-red-500">Passwords do not match</p>
-              )}
-            </div>
+                  {isResendingCode ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Sending code...
+                    </span>
+                  ) : (
+                    'Resend code'
+                  )}
+                </Button>
 
-            {/* Terms Agreement */}
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="w-4 h-4 mt-0.5 rounded border-border text-primary focus:ring-primary/50"
-                required
-              />
-              <span className="text-sm text-muted-foreground">
-                I agree to the{' '}
-                <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
-                {' '}and{' '}
-                <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
-              </span>
-            </label>
-
-            {/* Submit Button */}
-            <Button type="submit" className="w-full py-3 text-base" disabled={isLoading}>
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Creating account...
-                </span>
-              ) : (
-                'Create account'
-              )}
-            </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full py-3 text-base"
+                  onClick={() => {
+                    setStep('form');
+                    setVerificationCode('');
+                    setInfoMessage('You can edit your details and submit again.');
+                  }}
+                >
+                  Edit details
+                </Button>
+              </>
+            )}
           </form>
         </div>
       </div>

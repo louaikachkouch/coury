@@ -25,10 +25,11 @@ export const authAPI = {
     return data;
   },
 
-  verifyEmail: async (token) => {
-    const response = await fetch(`${API_URL}/auth/verify-email/${token}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+  verifyEmailCode: async (email, code) => {
+    const response = await fetch(`${API_URL}/auth/verify-email-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code })
     });
     const data = await response.json();
     if (!response.ok) {
@@ -37,8 +38,8 @@ export const authAPI = {
     return data;
   },
 
-  resendVerification: async (email) => {
-    const response = await fetch(`${API_URL}/auth/resend-verification`, {
+  resendVerificationCode: async (email) => {
+    const response = await fetch(`${API_URL}/auth/resend-verification-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })

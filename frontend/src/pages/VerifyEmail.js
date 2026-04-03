@@ -1,35 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { CheckCircle2, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
-import { authAPI } from '../services/api';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Seo from '../components/seo/Seo';
 
 const VerifyEmail = () => {
-  const { token } = useParams();
-  const [status, setStatus] = useState('loading');
-  const [message, setMessage] = useState('Verifying your email...');
-
-  useEffect(() => {
-    const verify = async () => {
-      try {
-        const data = await authAPI.verifyEmail(token);
-        setStatus('success');
-        setMessage(data.message || 'Email verified successfully.');
-      } catch (error) {
-        setStatus('error');
-        setMessage(error.message || 'Verification link is invalid or has expired.');
-      }
-    };
-
-    if (!token) {
-      setStatus('error');
-      setMessage('Missing verification token.');
-      return;
-    }
-
-    verify();
-  }, [token]);
+  const [message] = useState('Email verification now uses a 6-digit code. Please return to registration or login to verify your account.');
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -44,12 +20,10 @@ const VerifyEmail = () => {
         </Link>
 
         <div className="text-center">
-          {status === 'loading' && <Loader2 className="h-10 w-10 mx-auto animate-spin text-primary" />}
-          {status === 'success' && <CheckCircle2 className="h-10 w-10 mx-auto text-green-600" />}
-          {status === 'error' && <AlertCircle className="h-10 w-10 mx-auto text-red-500" />}
+          <AlertCircle className="h-10 w-10 mx-auto text-amber-500" />
 
           <h1 className="mt-4 text-2xl font-bold text-foreground">Email Verification</h1>
-          <p className={`mt-3 text-sm ${status === 'success' ? 'text-green-600' : status === 'error' ? 'text-red-500' : 'text-muted-foreground'}`}>
+          <p className="mt-3 text-sm text-muted-foreground">
             {message}
           </p>
 

@@ -5,7 +5,7 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const { isDisposableEmail } = require('../utils/disposableDomains');
-const { sendVerificationEmail } = require('../utils/email');
+const { sendVerificationCodeEmail } = require('../utils/email');
 
 // @route   POST /api/auth/register
 // @desc    Register user
@@ -44,20 +44,28 @@ router.post(
         password
       });
 
-      const verificationToken = user.getEmailVerificationToken();
+      const verificationCode = user.getEmailVerificationCode();
       await user.save({ validateBeforeSave: false });
 
-      const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const verificationUrl = `${frontendBaseUrl}/verify-email/${verificationToken}`;
+      try {
+        await sendVerificationCodeEmail({
+          email: user.email,
+          name: user.name,
+          verificationCode
+        });
+      } catch (emailErr) {
+        // Roll back the user if verification email cannot be sent.
+        await User.deleteOne({ _id: user._id });
+        return res.status(500).json({
+          message: 'Could not send verification code. Account was not created. Please try again.'
+        });
+      }
 
-      await sendVerificationEmail({
-        email: user.email,
-        name: user.name,
-        verificationUrl
-      });
       res.status(201).json({
         success: true,
-        message: 'Registration successful. Please verify your email before signing in.'
+        message: 'Registration successful. Enter the 6-digit code sent to your email.',
+        requiresEmailCodeVerification: true,
+        email
       });
     } catch (err) {
       console.error('Registration error:', err);
@@ -132,42 +140,75 @@ router.post(
   }
 );
 
-// @route   GET /api/auth/verify-email/:token
-// @desc    Verify user email
+// @route   POST /api/auth/verify-email-code
+// @desc    Verify user email with 6-digit code
 // @access  Public
-router.get('/verify-email/:token', async (req, res) => {
+router.post(
+  '/verify-email-code',
+  [
+    body('email', 'Please include a valid email').isEmail(),
+    body('code', 'Please provide a valid 6-digit code').isLength({ min: 6, max: 6 }).isNumeric()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
   try {
-    const verificationToken = crypto
+    const { email, code } = req.body;
+    const verificationCode = crypto
       .createHash('sha256')
-      .update(req.params.token)
+      .update(code)
       .digest('hex');
 
     const user = await User.findOne({
-      emailVerificationToken: verificationToken,
+      email,
+      emailVerificationCode: verificationCode,
       emailVerificationExpire: { $gt: Date.now() }
-    }).select('+emailVerificationToken +emailVerificationExpire');
+    }).select('+emailVerificationCode +emailVerificationExpire');
 
     if (!user) {
-      return res.status(400).json({ message: 'Verification link is invalid or has expired' });
+      return res.status(400).json({ message: 'Invalid or expired verification code' });
     }
 
     user.isEmailVerified = true;
-    user.emailVerificationToken = undefined;
+    user.emailVerificationCode = undefined;
     user.emailVerificationExpire = undefined;
     await user.save({ validateBeforeSave: false });
 
-    return res.json({ success: true, message: 'Email verified successfully. You can now sign in.' });
+    const token = user.getSignedJwtToken();
+
+    return res.json({
+      success: true,
+      message: 'Email verified successfully.',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        phone: user.phone,
+        location: user.location,
+        dateOfBirth: user.dateOfBirth,
+        website: user.website,
+        major: user.major,
+        year: user.year,
+        bio: user.bio
+      }
+    });
   } catch (err) {
     console.error('Email verification error:', err);
     return res.status(500).json({ message: 'Server error' });
   }
-});
+  }
+);
 
-// @route   POST /api/auth/resend-verification
-// @desc    Resend email verification link
+// @route   POST /api/auth/resend-verification-code
+// @desc    Resend email verification code
 // @access  Public
 router.post(
-  '/resend-verification',
+  '/resend-verification-code',
   [body('email', 'Please include a valid email').isEmail()],
   async (req, res) => {
     const errors = validationResult(req);
@@ -177,7 +218,7 @@ router.post(
 
     try {
       const { email } = req.body;
-      const user = await User.findOne({ email }).select('+emailVerificationToken +emailVerificationExpire');
+      const user = await User.findOne({ email }).select('+emailVerificationCode +emailVerificationExpire');
 
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
@@ -187,19 +228,16 @@ router.post(
         return res.status(400).json({ message: 'Email is already verified' });
       }
 
-      const verificationToken = user.getEmailVerificationToken();
+      const verificationCode = user.getEmailVerificationCode();
       await user.save({ validateBeforeSave: false });
 
-      const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const verificationUrl = `${frontendBaseUrl}/verify-email/${verificationToken}`;
-
-      await sendVerificationEmail({
+      await sendVerificationCodeEmail({
         email: user.email,
         name: user.name,
-        verificationUrl
+        verificationCode
       });
 
-      return res.json({ success: true, message: 'Verification email sent' });
+      return res.json({ success: true, message: 'Verification code sent' });
     } catch (err) {
       console.error('Resend verification error:', err);
       return res.status(500).json({ message: 'Server error' });

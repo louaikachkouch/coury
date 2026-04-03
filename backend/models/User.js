@@ -30,7 +30,7 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  emailVerificationToken: {
+  emailVerificationCode: {
     type: String,
     select: false
   },
@@ -98,18 +98,18 @@ UserSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Generate and hash an email verification token
-UserSchema.methods.getEmailVerificationToken = function() {
-  const verificationToken = crypto.randomBytes(32).toString('hex');
+// Generate and hash a 6-digit email verification code
+UserSchema.methods.getEmailVerificationCode = function() {
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-  this.emailVerificationToken = crypto
+  this.emailVerificationCode = crypto
     .createHash('sha256')
-    .update(verificationToken)
+    .update(verificationCode)
     .digest('hex');
 
-  this.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000;
+  this.emailVerificationExpire = Date.now() + 10 * 60 * 1000;
 
-  return verificationToken;
+  return verificationCode;
 };
 
 module.exports = mongoose.model('User', UserSchema);
