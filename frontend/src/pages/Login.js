@@ -4,6 +4,7 @@ import { BookOpen, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-re
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/seo/Seo';
+import { authAPI } from '../services/api';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -16,6 +17,9 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [sessionExpiredMessage, setSessionExpiredMessage] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
 
   // Check if session expired on mount
   useEffect(() => {
@@ -38,6 +42,8 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setInfoMessage('');
+    setNeedsVerification(false);
     setIsLoading(true);
     
     try {
@@ -45,8 +51,25 @@ const Login = () => {
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to sign in. Please try again.');
+      if ((err.message || '').toLowerCase().includes('verify your email')) {
+        setNeedsVerification(true);
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setError('');
+    setInfoMessage('');
+    setIsResendingVerification(true);
+    try {
+      await authAPI.resendVerification(email);
+      setInfoMessage('Verification email sent. Please check your inbox.');
+    } catch (err) {
+      setError(err.message || 'Failed to resend verification email.');
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -133,6 +156,12 @@ const Login = () => {
                 {error}
               </div>
             )}
+
+            {infoMessage && (
+              <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-green-600 text-sm">
+                {infoMessage}
+              </div>
+            )}
             
             {/* Email Field */}
             <div>
@@ -209,6 +238,25 @@ const Login = () => {
                 'Sign in'
               )}
             </Button>
+
+            {needsVerification && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full py-3 text-base"
+                onClick={handleResendVerification}
+                disabled={isResendingVerification || !email}
+              >
+                {isResendingVerification ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Sending verification...
+                  </span>
+                ) : (
+                  'Resend verification email'
+                )}
+              </Button>
+            )}
           </form>
         </div>
       </div>

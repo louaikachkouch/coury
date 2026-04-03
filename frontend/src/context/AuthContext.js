@@ -152,15 +152,7 @@ export const AuthProvider = ({ children }) => {
     if (isApiAvailable) {
       try {
         const data = await authAPI.register(fullName, email, password);
-        
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        // Auto-remember user on registration
-        localStorage.setItem('rememberMe', 'true');
-        localStorage.setItem('sessionExpiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
-        
-        setUser(data.user);
-        return data.user;
+        return data;
       } catch (error) {
         throw error;
       }

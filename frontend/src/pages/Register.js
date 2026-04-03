@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { BookOpen, Mail, Lock, Eye, EyeOff, User, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/seo/Seo';
 
 const Register = () => {
-  const navigate = useNavigate();
   const { register } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -20,6 +19,7 @@ const Register = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleChange = (e) => {
     setFormData({
@@ -31,6 +31,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     
     // Validation
     if (formData.password !== formData.confirmPassword) {
@@ -46,8 +47,15 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      await register(formData.fullName, formData.email, formData.password);
-      navigate('/dashboard');
+      const response = await register(formData.fullName, formData.email, formData.password);
+      setSuccessMessage(response.message || 'Account created. Please verify your email before signing in.');
+      setFormData({
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+      });
+      setAgreedToTerms(false);
     } catch (err) {
       setError(err.message || 'Failed to create account. Please try again.');
     } finally {
@@ -144,6 +152,12 @@ const Register = () => {
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-sm">
                 {error}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-green-600 text-sm">
+                {successMessage}
               </div>
             )}
             
