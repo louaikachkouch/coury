@@ -16,6 +16,12 @@ for (const envVar of requiredEnvVars) {
   }
 }
 
+const smtpEnvVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM'];
+const missingSmtpVars = smtpEnvVars.filter((envVar) => !process.env[envVar]);
+if (missingSmtpVars.length > 0) {
+  console.warn(`Warning: SMTP is not fully configured. Missing: ${missingSmtpVars.join(', ')}`);
+}
+
 // Connect to database
 connectDB();
 
