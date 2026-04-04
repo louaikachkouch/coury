@@ -58,7 +58,7 @@ router.post(
         await User.deleteOne({ _id: user._id });
         console.error('Verification email send failed:', emailErr.message);
 
-        const message = emailErr.message && emailErr.message.includes('SMTP is not configured')
+        const message = emailErr.message && (emailErr.message.includes('EASYEMAIL') || emailErr.message.includes('not configured'))
           ? 'Email service is not configured on the server. Please contact support or try again later.'
           : 'Could not send verification code. Account was not created. Please try again.';
 

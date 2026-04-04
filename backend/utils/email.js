@@ -1,48 +1,18 @@
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 
-const hasSmtpConfig = () => {
-  // In development: only SMTP_FROM is needed (codes logged to console)
-  // In production: full SMTP config required
+const hasEmailConfig = () => {
+  // EasyEmailAPI requires API key and sender email
   if (process.env.NODE_ENV === 'production') {
-    return process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.SMTP_FROM;
+    return process.env.EASYEMAIL_API_KEY && process.env.EASYEMAIL_FROM;
   }
-  return !!process.env.SMTP_FROM;
-};
-
-const createTransporter = () => {
-  // Production: use provided SMTP config
-  if (process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
-    });
-  }
-
-  // Development: return a mock transporter that logs to console
-  return {
-    sendMail: async (options) => {
-      console.log('\n📧 [DEV MODE] Verification Email:');
-      console.log(`To: ${options.to}`);
-      console.log(`Subject: ${options.subject}`);
-      console.log('---');
-      console.log(options.html);
-      console.log('---\n');
-      return { messageId: 'dev-' + Date.now() };
-    }
-  };
+  return !!process.env.EASYEMAIL_FROM;
 };
 
 const sendVerificationCodeEmail = async ({ email, name, verificationCode }) => {
-  if (!hasSmtpConfig()) {
-    throw new Error('SMTP_FROM is not configured. Please set SMTP_FROM in your .env file.');
+  if (!hasEmailConfig()) {
+    throw new Error('EASYEMAIL_API_KEY and EASYEMAIL_FROM are not configured. Please set them in your .env file.');
   }
 
-  const transporter = createTransporter();
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #222;">
       <h2>Verify your Coury account</h2>
@@ -56,12 +26,39 @@ const sendVerificationCodeEmail = async ({ email, name, verificationCode }) => {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
-    to: email,
-    subject: 'Verify your Coury account',
-    html
-  });
+  // Development mode: log to console
+  if (!process.env.EASYEMAIL_API_KEY) {
+    console.log('\n📧 [DEV MODE] Verification Email:');
+    console.log(`To: ${email}`);
+    console.log(`Subject: Verify your Coury account`);
+    console.log('---');
+    console.log(html);
+    console.log('---\n');
+    return { messageId: 'dev-' + Date.now() };
+  }
+
+  try {
+    const response = await axios.post(
+      'https://api.easyemail.io/send',
+      {
+        from: process.env.EASYEMAIL_FROM,
+        to: email,
+        subject: 'Verify your Coury account',
+        html: html
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.EASYEMAIL_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('EasyEmailAPI error:', error.response?.data || error.message);
+    throw new Error(`Failed to send verification email: ${error.response?.data?.message || error.message}`);
+  }
 };
 
-module.exports = { sendVerificationCodeEmail, hasSmtpConfig };
+module.exports = { sendVerificationCodeEmail, hasEmailConfig };
