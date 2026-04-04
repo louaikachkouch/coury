@@ -57,13 +57,15 @@ router.post(
         // Roll back the user if verification email cannot be sent.
         await User.deleteOne({ _id: user._id });
         console.error('Verification email send failed:', emailErr.message);
+        console.error('Full error:', emailErr);
 
         const message = emailErr.message && (emailErr.message.includes('EASYEMAIL') || emailErr.message.includes('not configured'))
           ? 'Email service is not configured on the server. Please contact support or try again later.'
-          : 'Could not send verification code. Account was not created. Please try again.';
+          : `Could not send verification code: ${emailErr.message}`;
 
         return res.status(500).json({
-          message
+          message,
+          error: process.env.NODE_ENV === 'development' ? emailErr.message : undefined
         });
       }
 

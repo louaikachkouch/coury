@@ -38,6 +38,10 @@ const sendVerificationCodeEmail = async ({ email, name, verificationCode }) => {
   }
 
   try {
+    console.log('📧 Sending verification email via EasyEmail API...');
+    console.log('From:', process.env.EASYEMAIL_FROM);
+    console.log('To:', email);
+    
     const response = await axios.post(
       'https://api.easyemail.io/send',
       {
@@ -50,14 +54,21 @@ const sendVerificationCodeEmail = async ({ email, name, verificationCode }) => {
         headers: {
           'Authorization': `Bearer ${process.env.EASYEMAIL_API_KEY}`,
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: 10000
       }
     );
 
+    console.log('✅ Email sent successfully:', response.data);
     return response.data;
   } catch (error) {
-    console.error('EasyEmailAPI error:', error.response?.data || error.message);
-    throw new Error(`Failed to send verification email: ${error.response?.data?.message || error.message}`);
+    console.error('❌ EasyEmailAPI error:');
+    console.error('Status:', error.response?.status);
+    console.error('Data:', error.response?.data);
+    console.error('Message:', error.message);
+    
+    const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+    throw new Error(`Failed to send verification email: ${errorMessage}`);
   }
 };
 
