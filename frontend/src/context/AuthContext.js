@@ -185,37 +185,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const verifyEmailCode = async (email, code, rememberMe = true) => {
-    if (isApiAvailable) {
-      try {
-        const data = await authAPI.verifyEmailCode(email, code);
-
-        const loginData = {
-          token: data.token,
-          user: data.user,
-          loginTime: Date.now(),
-          rememberMe
-        };
-
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('authData', JSON.stringify(loginData));
-
-        if (rememberMe) {
-          localStorage.setItem('rememberMe', 'true');
-          localStorage.setItem('sessionExpiry', (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
-        } else {
-          localStorage.removeItem('rememberMe');
-          localStorage.removeItem('sessionExpiry');
-        }
-
-        setUser(data.user);
-        return data.user;
-      } catch (error) {
-        throw error;
-      }
-    }
-
-    throw new Error('API unavailable. Please try again when the server is online.');
+    // Email verification removed - users are logged in immediately after registration
+    throw new Error('Email verification has been disabled');
   };
 
   const logout = () => {

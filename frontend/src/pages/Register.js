@@ -4,11 +4,10 @@ import { BookOpen, Mail, Lock, Eye, EyeOff, User, CheckCircle2, Loader2, ArrowLe
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import Seo from '../components/seo/Seo';
-import { authAPI } from '../services/api';
 
 const Register = () => {
   const navigate = useNavigate();
-  const { register, verifyEmailCode } = useAuth();
+  const { register } = useAuth();
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -21,12 +20,6 @@ const Register = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [infoMessage, setInfoMessage] = useState('');
-  const [step, setStep] = useState('form');
-  const [verificationEmail, setVerificationEmail] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
-  const [isResendingCode, setIsResendingCode] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -38,7 +31,6 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setInfoMessage('');
     
     // Validation
     if (formData.password !== formData.confirmPassword) {
@@ -54,49 +46,12 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      const response = await register(formData.fullName, formData.email, formData.password);
-      setVerificationEmail(formData.email);
-      setStep('code');
-      setInfoMessage(response.message || 'Enter the 6-digit code sent to your email.');
+      await register(formData.fullName, formData.email, formData.password);
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleVerifyCode = async (e) => {
-    e.preventDefault();
-    setError('');
-    setInfoMessage('');
-
-    if (!/^\d{6}$/.test(verificationCode)) {
-      setError('Please enter a valid 6-digit code');
-      return;
-    }
-
-    setIsVerifyingCode(true);
-    try {
-      await verifyEmailCode(verificationEmail, verificationCode, true);
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.message || 'Invalid or expired verification code');
-    } finally {
-      setIsVerifyingCode(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    setError('');
-    setInfoMessage('');
-    setIsResendingCode(true);
-    try {
-      await authAPI.resendVerificationCode(verificationEmail);
-      setInfoMessage('A new 6-digit verification code has been sent.');
-    } catch (err) {
-      setError(err.message || 'Failed to resend verification code');
-    } finally {
-      setIsResendingCode(false);
     }
   };
 
@@ -176,7 +131,7 @@ const Register = () => {
 
           <div className="text-center lg:text-left mb-8">
             <h2 className="text-2xl font-bold text-foreground mb-2">
-              {step === 'form' ? 'Create your account' : 'Verify your email'}
+              Create your account
             </h2>
             <p className="text-muted-foreground">
               Already have an account?{' '}
@@ -186,7 +141,7 @@ const Register = () => {
             </p>
           </div>
 
-          <form onSubmit={step === 'form' ? handleSubmit : handleVerifyCode} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Error Message */}
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-sm">
@@ -194,15 +149,7 @@ const Register = () => {
               </div>
             )}
 
-            {infoMessage && (
-              <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-green-600 text-sm">
-                {infoMessage}
-              </div>
-            )}
-
-            {step === 'form' && (
-              <>
-                <div>
+            <div>
                   <label htmlFor="fullName" className="block text-sm font-medium text-foreground mb-2">
                     Full name
                   </label>
@@ -337,7 +284,7 @@ const Register = () => {
                     'Create account'
                   )}
                 </Button>
-              </>
+              </div>
             )}
 
             {step === 'code' && (

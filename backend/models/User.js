@@ -26,18 +26,6 @@ const UserSchema = new mongoose.Schema({
     minlength: 6,
     select: false
   },
-  isEmailVerified: {
-    type: Boolean,
-    default: false
-  },
-  emailVerificationCode: {
-    type: String,
-    select: false
-  },
-  emailVerificationExpire: {
-    type: Date,
-    select: false
-  },
   avatar: {
     type: String,
     default: ''
@@ -96,20 +84,6 @@ UserSchema.methods.getSignedJwtToken = function() {
 // Match user entered password to hashed password in database
 UserSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
-};
-
-// Generate and hash a 6-digit email verification code
-UserSchema.methods.getEmailVerificationCode = function() {
-  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-  this.emailVerificationCode = crypto
-    .createHash('sha256')
-    .update(verificationCode)
-    .digest('hex');
-
-  this.emailVerificationExpire = Date.now() + 10 * 60 * 1000;
-
-  return verificationCode;
 };
 
 module.exports = mongoose.model('User', UserSchema);

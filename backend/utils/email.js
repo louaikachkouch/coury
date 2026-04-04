@@ -1,13 +1,16 @@
-const sgMail = require('@sendgrid/mail');
+const axios = require('axios');
 
 const hasEmailConfig = () => {
-  // SendGrid requires API key and from email
-  return !!process.env.SENDGRID_API_KEY && !!process.env.SENDGRID_FROM_EMAIL;
+  // EasyEmailAPI requires API key and sender email
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.EASYEMAIL_API_KEY && process.env.EASYEMAIL_FROM;
+  }
+  return !!process.env.EASYEMAIL_FROM;
 };
 
 const sendVerificationCodeEmail = async ({ email, name, verificationCode }) => {
   if (!hasEmailConfig()) {
-    throw new Error('SENDGRID_API_KEY and SENDGRID_FROM_EMAIL are not configured. Please set them in your .env file.');
+    throw new Error('EASYEMAIL_API_KEY and EASYEMAIL_FROM are not configured. Please set them in your .env file.');
   }
 
   const html = `
@@ -24,7 +27,7 @@ const sendVerificationCodeEmail = async ({ email, name, verificationCode }) => {
   `;
 
   // Development mode: log to console
-  if (!process.env.SENDGRID_API_KEY) {
+  if (!process.env.EASYEMAIL_API_KEY) {
     console.log('\n📧 [DEV MODE] Verification Email:');
     console.log(`To: ${email}`);
     console.log(`Subject: Verify your Coury account`);
@@ -35,41 +38,26 @@ const sendVerificationCodeEmail = async ({ email, name, verificationCode }) => {
   }
 
   try {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    
-    console.log('📧 Sending verification email via SendGrid...');
-    console.log('From:', process.env.SENDGRID_FROM_EMAIL);
-    console.log('To:', email);
-    console.log('API Key configured:', !!process.env.SENDGRID_API_KEY);
-    if (process.env.SENDGRID_API_KEY) {
-      console.log('API Key preview:', process.env.SENDGRID_API_KEY.substring(0, 10) + '...');
-    }
+    const response = await axios.post(
+      'https://api.easyemail.io/send',
+      {
+        from: process.env.EASYEMAIL_FROM,
+        to: email,
+        subject: 'Verify your Coury account',
+        html: html
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.EASYEMAIL_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
 
-    const msg = {
-      to: email,
-      from: process.env.SENDGRID_FROM_EMAIL,
-      subject: 'Verify your Coury account',
-      html: html
-    };
-
-    const response = await sgMail.send(msg);
-    
-    console.log('✅ Email sent successfully');
-    console.log('Message ID:', response[0].headers['x-message-id']);
-    
-    return {
-      messageId: response[0].headers['x-message-id'],
-      success: true
-    };
+    return response.data;
   } catch (error) {
-    console.error('❌ SendGrid error:');
-    console.error('Status:', error.code || error.status);
-    console.error('Message:', error.message);
-    if (error.response) {
-      console.error('Response:', error.response.body);
-    }
-    
-    throw new Error(`Failed to send verification email: ${error.message}`);
+    console.error('EasyEmailAPI error:', error.response?.data || error.message);
+    throw new Error(`Failed to send verification email: ${error.response?.data?.message || error.message}`);
   }
 };
 

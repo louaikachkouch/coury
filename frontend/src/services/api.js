@@ -24,30 +24,6 @@ export const authAPI = {
     }
     return data;
   },
-
-  verifyEmailCode: async (email, code) => {
-    const response = await fetch(`${API_URL}/auth/verify-email-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code })
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || 'Email verification failed');
-    }
-    return data;
-  },
-
-  resendVerificationCode: async (email) => {
-    const response = await fetch(`${API_URL}/auth/resend-verification-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to resend verification email');
-    }
     return data;
   },
 
