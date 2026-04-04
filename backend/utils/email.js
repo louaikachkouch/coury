@@ -40,6 +40,10 @@ const sendVerificationCodeEmail = async ({ email, name, verificationCode }) => {
     console.log('📧 Sending verification email via SendGrid...');
     console.log('From:', process.env.SENDGRID_FROM_EMAIL);
     console.log('To:', email);
+    console.log('API Key configured:', !!process.env.SENDGRID_API_KEY);
+    if (process.env.SENDGRID_API_KEY) {
+      console.log('API Key preview:', process.env.SENDGRID_API_KEY.substring(0, 10) + '...');
+    }
 
     const msg = {
       to: email,
